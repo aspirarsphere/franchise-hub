@@ -71,8 +71,19 @@ export default function Team() {
   }
 
   async function removeStaff(staffId) {
-    await supabase.from('profiles').update({ franchise_id: null }).eq('id', staffId)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ user_id: staffId })
+    })
+    const result = await res.json()
     setConfirm(null)
+    if (!res.ok || result.error) { alert('Error: ' + (result.error || 'Could not remove staff')); return }
     loadTeam()
   }
 

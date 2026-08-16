@@ -3,7 +3,8 @@ import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Spinner from '../../components/Spinner'
 import EmptyState from '../../components/EmptyState'
-import { Users, Plus, MapPin, Check, X, Clock, Coffee } from 'lucide-react'
+import { Users, Plus, MapPin, Check, X, Clock, Coffee, Trash2 } from 'lucide-react'
+import ConfirmDialog from '../../components/ConfirmDialog'
 import { todayIST, formatTime } from '../../lib/utils'
 
 const STATE_CODES = [
@@ -23,6 +24,8 @@ export default function HQTeam() {
   const [form, setForm] = useState({ full_name: '', email: '', password: '', state_code: 'KL', franchise_id: '' })
   const [submitting, setSubmitting] = useState(false)
   const [created, setCreated] = useState(null)
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   const today = todayIST()
 
@@ -96,6 +99,25 @@ export default function HQTeam() {
     })
     setShowAddOwner(false)
     setForm({ full_name: '', email: '', password: '', state_code: 'KL', franchise_id: '' })
+    loadAll()
+  }
+
+  async function deleteUser() {
+    setDeleting(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ user_id: confirmDelete.id })
+    })
+    const result = await res.json()
+    setDeleting(false)
+    setConfirmDelete(null)
+    if (!res.ok || result.error) { alert('Error: ' + (result.error || 'Could not delete user')); return }
     loadAll()
   }
 
@@ -231,11 +253,17 @@ export default function HQTeam() {
                             <p className="text-xs text-gray-400 font-body">{o.franchises?.name || 'No franchise'}</p>
                           </div>
                         </div>
-                        {o.franchises?.franchise_code && (
-                          <span className="text-xs font-mono font-bold px-2 py-1 rounded-lg bg-gray-100 text-gray-600">
-                            {o.franchises.franchise_code}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {o.franchises?.franchise_code && (
+                            <span className="text-xs font-mono font-bold px-2 py-1 rounded-lg bg-gray-100 text-gray-600">
+                              {o.franchises.franchise_code}
+                            </span>
+                          )}
+                          <button onClick={() => setConfirmDelete(o)}
+                            className="p-2 rounded-full hover:bg-red-50 transition-colors">
+                            <Trash2 size={15} className="text-red-400" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -283,6 +311,15 @@ export default function HQTeam() {
           )}
         </>
       )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Remove User"
+        message={`Remove ${confirmDelete?.full_name}? This will permanently delete their account and they will lose all access.`}
+        danger
+        onConfirm={deleteUser}
+        onCancel={() => setConfirmDelete(null)}
+      />
 
       {/* Add Owner Modal */}
       {showAddOwner && (
