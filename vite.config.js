@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { writeFileSync } from 'fs'
 
 export default defineConfig({
   base: '/',
@@ -28,6 +29,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+        globIgnores: ['version.json'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/nqucslzdeesvalhdfcdr\.supabase\.co\/.*/i,
@@ -39,6 +41,14 @@ export default defineConfig({
           }
         ]
       }
-    })
+    }),
+    // Generate version.json on every build so the app can detect new deployments
+    {
+      name: 'generate-version',
+      apply: 'build',
+      closeBundle() {
+        writeFileSync('dist/version.json', JSON.stringify({ v: Date.now() }))
+      }
+    }
   ]
 })

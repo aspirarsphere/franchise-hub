@@ -20,23 +20,28 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { db: { schema: 'franchise' } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Verify caller is super_admin
-    const callerClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } }, db: { schema: 'franchise' } }
+    // Verify caller has a valid session
+    const { data: { user: caller }, error: callerError } = await supabaseAdmin.auth.getUser(
+      authHeader.replace('Bearer ', '')
     )
-    const { data: { user: caller } } = await callerClient.auth.getUser()
-    if (!caller) {
+
+    if (callerError || !caller) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
-    const { data: callerProfile } = await callerClient.from('profiles').select('role').eq('id', caller.id).single()
+
+    // Get caller's role from franchise schema
+    const { data: callerProfile } = await supabaseAdmin
+      .schema('franchise')
+      .from('profiles')
+      .select('role, franchise_id')
+      .eq('id', caller.id)
+      .single()
+
     if (!callerProfile || !['super_admin', 'franchise_owner'].includes(callerProfile.role)) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -50,7 +55,6 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Prevent deleting yourself
     if (user_id === caller.id) {
       return new Response(JSON.stringify({ error: 'Cannot delete your own account' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -59,9 +63,14 @@ Deno.serve(async (req) => {
 
     // Owners can only delete staff from their own franchise
     if (callerProfile.role === 'franchise_owner') {
-      const { data: targetProfile } = await supabaseAdmin.from('profiles').select('role, franchise_id').eq('id', user_id).single()
-      const { data: callerFullProfile } = await supabaseAdmin.from('profiles').select('franchise_id').eq('id', caller.id).single()
-      if (targetProfile?.role !== 'staff' || targetProfile?.franchise_id !== callerFullProfile?.franchise_id) {
+      const { data: targetProfile } = await supabaseAdmin
+        .schema('franchise')
+        .from('profiles')
+        .select('role, franchise_id')
+        .eq('id', user_id)
+        .single()
+
+      if (targetProfile?.role !== 'staff' || targetProfile?.franchise_id !== callerProfile.franchise_id) {
         return new Response(JSON.stringify({ error: 'Forbidden' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
@@ -69,7 +78,7 @@ Deno.serve(async (req) => {
     }
 
     // Delete profile first, then auth user
-    await supabaseAdmin.from('profiles').delete().eq('id', user_id)
+    await supabaseAdmin.schema('franchise').from('profiles').delete().eq('id', user_id)
     const { error } = await supabaseAdmin.auth.admin.deleteUser(user_id)
 
     if (error) {
