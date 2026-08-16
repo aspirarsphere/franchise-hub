@@ -16,6 +16,7 @@ import ResetPassword from './pages/auth/ResetPassword'
 import StaffHome from './pages/staff/StaffHome'
 import NewSale from './pages/staff/NewSale'
 import Attendance from './pages/staff/Attendance'
+import VRRegistration from './pages/staff/VRRegistration'
 
 // Owner pages
 import OwnerDashboard from './pages/owner/OwnerDashboard'
@@ -64,6 +65,7 @@ export default function App() {
       }>
         <Route index element={<StaffHome />} />
         <Route path="sale" element={<NewSale />} />
+        <Route path="vr" element={<VRRegistration />} />
         <Route path="attendance" element={<Attendance />} />
       </Route>
 

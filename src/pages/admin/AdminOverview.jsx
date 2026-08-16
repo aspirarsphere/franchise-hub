@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { formatINR, todayIST } from '../../lib/utils'
 import Spinner from '../../components/Spinner'
-import { TrendingUp, Store, ShoppingCart, Package } from 'lucide-react'
+import { TrendingUp, Store, ShoppingCart, Package, Glasses } from 'lucide-react'
 
 export default function AdminOverview() {
   const [data, setData] = useState(null)
@@ -15,12 +15,14 @@ export default function AdminOverview() {
     const weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10)
     const monthStart = today.slice(0, 8) + '01'
 
-    const [todaySales, weekSales, monthSales, franchises, restock] = await Promise.all([
+    const [todaySales, weekSales, monthSales, franchises, restock, vrToday, vrMonth] = await Promise.all([
       supabase.from('sales').select('total, franchise_id, franchises(name)').gte('created_at', today + 'T00:00:00+05:30'),
       supabase.from('sales').select('total').gte('created_at', weekAgo + 'T00:00:00+05:30'),
       supabase.from('sales').select('total').gte('created_at', monthStart + 'T00:00:00+05:30'),
       supabase.from('franchises').select('*, profiles(count)').eq('is_active', true),
-      supabase.from('restock_requests').select('id', { count: 'exact' }).eq('status', 'pending')
+      supabase.from('restock_requests').select('id', { count: 'exact' }).eq('status', 'pending'),
+      supabase.from('vr_registrations').select('type').gte('created_at', today + 'T00:00:00+05:30'),
+      supabase.from('vr_registrations').select('type').gte('created_at', monthStart + 'T00:00:00+05:30')
     ])
 
     // Franchise leaderboard
@@ -40,7 +42,11 @@ export default function AdminOverview() {
       todayCount: todaySales.data?.length || 0,
       franchiseCount: franchises.data?.length || 0,
       pendingRestock: restock.count || 0,
-      leaderboard: ranked
+      leaderboard: ranked,
+      vrToday: vrToday.data?.length || 0,
+      vrTodayFree: vrToday.data?.filter(r => r.type === 'free').length || 0,
+      vrTodayPaid: vrToday.data?.filter(r => r.type === 'paid').length || 0,
+      vrMonth: vrMonth.data?.length || 0,
     })
     setLoading(false)
   }
@@ -83,6 +89,32 @@ export default function AdminOverview() {
         <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
           <p className={`font-heading text-2xl font-bold ${data.pendingRestock > 0 ? 'text-red-500' : 'text-gray-800'}`}>{data.pendingRestock}</p>
           <p className="text-[10px] text-gray-400 font-body">Restock</p>
+        </div>
+      </div>
+
+      {/* VR Summary */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-3">
+          <Glasses size={16} style={{ color: '#700000' }} />
+          <p className="text-xs font-semibold font-body text-gray-500 uppercase tracking-wider">VR Experience</p>
+        </div>
+        <div className="grid grid-cols-4 gap-2 text-center">
+          <div>
+            <p className="font-heading text-xl font-bold text-gray-800">{data.vrToday}</p>
+            <p className="text-[10px] text-gray-400 font-body">Today</p>
+          </div>
+          <div>
+            <p className="font-heading text-xl font-bold text-green-600">{data.vrTodayFree}</p>
+            <p className="text-[10px] text-gray-400 font-body">Free</p>
+          </div>
+          <div>
+            <p className="font-heading text-xl font-bold" style={{ color: '#9c7738' }}>{data.vrTodayPaid}</p>
+            <p className="text-[10px] text-gray-400 font-body">Paid</p>
+          </div>
+          <div>
+            <p className="font-heading text-xl font-bold" style={{ color: '#700000' }}>{data.vrMonth}</p>
+            <p className="text-[10px] text-gray-400 font-body">This Month</p>
+          </div>
         </div>
       </div>
 

@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { formatINR, todayIST } from '../../lib/utils'
 import Spinner from '../../components/Spinner'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { TrendingUp, Users, ShoppingCart, Package, AlertTriangle } from 'lucide-react'
+import { TrendingUp, Users, ShoppingCart, Package, AlertTriangle, Glasses } from 'lucide-react'
 
 export default function OwnerDashboard() {
   const { profile } = useAuth()
@@ -20,7 +20,7 @@ export default function OwnerDashboard() {
     const today = todayIST()
     const weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10)
 
-    const [salesRes, staffRes, inventoryRes, weekSalesRes] = await Promise.all([
+    const [salesRes, staffRes, inventoryRes, weekSalesRes, vrRes] = await Promise.all([
       supabase.from('sales')
         .select('total, products, created_at, customer_name')
         .eq('franchise_id', profile.franchise_id)
@@ -38,7 +38,11 @@ export default function OwnerDashboard() {
         .select('total, created_at')
         .eq('franchise_id', profile.franchise_id)
         .gte('created_at', weekAgo + 'T00:00:00+05:30')
-        .order('created_at')
+        .order('created_at'),
+      supabase.from('vr_registrations')
+        .select('type')
+        .eq('franchise_id', profile.franchise_id)
+        .gte('created_at', today + 'T00:00:00+05:30')
     ])
 
     // Weekly chart data
@@ -81,7 +85,10 @@ export default function OwnerDashboard() {
       maxRev,
       topSku: topSkuId,
       alerts,
-      inventory: inventoryRes.data || []
+      inventory: inventoryRes.data || [],
+      vrToday: vrRes.data?.length || 0,
+      vrFree: vrRes.data?.filter(r => r.type === 'free').length || 0,
+      vrPaid: vrRes.data?.filter(r => r.type === 'paid').length || 0,
     })
     setLoading(false)
   }
@@ -124,6 +131,28 @@ export default function OwnerDashboard() {
           <Package size={16} className="mx-auto text-gold mb-1" />
           <p className="font-heading text-xl font-bold text-gray-800">{data.alerts.length}</p>
           <p className="text-[10px] text-gray-400 font-body">Alerts</p>
+        </div>
+      </div>
+
+      {/* VR summary */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-3">
+          <Glasses size={16} style={{ color: '#700000' }} />
+          <p className="text-xs font-semibold font-body text-gray-500 uppercase tracking-wider">VR Experience Today</p>
+        </div>
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <div>
+            <p className="font-heading text-2xl font-bold text-gray-800">{data.vrToday}</p>
+            <p className="text-[10px] text-gray-400 font-body">Total</p>
+          </div>
+          <div>
+            <p className="font-heading text-2xl font-bold text-green-600">{data.vrFree}</p>
+            <p className="text-[10px] text-gray-400 font-body">Free</p>
+          </div>
+          <div>
+            <p className="font-heading text-2xl font-bold" style={{ color: '#9c7738' }}>{data.vrPaid}</p>
+            <p className="text-[10px] text-gray-400 font-body">Paid</p>
+          </div>
         </div>
       </div>
 
