@@ -64,33 +64,29 @@ export default function HQTeam() {
     }
     setSubmitting(true)
 
-    // Create auth user via SQL approach
-    const { data: existingUser } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('role', 'franchise_owner')
-      .eq('franchise_id', form.franchise_id)
-      .maybeSingle()
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        email: form.email.trim(),
+        password: form.password,
+        full_name: form.full_name.trim(),
+        role: 'franchise_owner',
+        franchise_id: form.franchise_id,
+      })
+    })
+    const result = await res.json()
+    setSubmitting(false)
 
-    if (existingUser) {
-      alert('This franchise already has an owner.')
-      setSubmitting(false)
+    if (!res.ok || result.error) {
+      alert('Error: ' + (result.error || 'Could not create user'))
       return
     }
-
-    // Insert invite record for reference
-    const { error: inviteErr } = await supabase.from('invites').insert({
-      email: form.email.trim(),
-      role: 'franchise_owner',
-      franchise_id: form.franchise_id,
-      full_name: form.full_name.trim(),
-      temp_password: form.password,
-      invited_by: profile.id,
-      status: 'pending'
-    })
-
-    setSubmitting(false)
-    if (inviteErr) { alert('Error: ' + inviteErr.message); return }
 
     setCreated({
       name: form.full_name,
@@ -207,14 +203,14 @@ export default function HQTeam() {
               {/* Created credentials card */}
               {created && (
                 <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-4 fade-in">
-                  <p className="text-sm font-semibold text-green-700 font-body mb-2">✓ Owner invite created — share these credentials:</p>
+                  <p className="text-sm font-semibold text-green-700 font-body mb-2">✓ Owner account created — share these login details:</p>
                   <div className="space-y-1 text-sm font-body text-gray-700">
                     <p><span className="text-gray-500">Name:</span> {created.name}</p>
                     <p><span className="text-gray-500">Franchise:</span> {created.franchise}</p>
                     <p><span className="text-gray-500">Email:</span> {created.email}</p>
                     <p><span className="text-gray-500">Password:</span> <span className="font-mono font-bold">{created.password}</span></p>
                   </div>
-                  <p className="text-xs text-gray-400 font-body mt-2">Ask them to create their account in Supabase with these credentials.</p>
+                  <p className="text-xs text-gray-400 font-body mt-2">Account is ready — they can log in immediately with these credentials.</p>
                   <button onClick={() => setCreated(null)} className="text-xs text-green-600 font-body mt-1 underline">Dismiss</button>
                 </div>
               )}
@@ -326,12 +322,6 @@ export default function HQTeam() {
                   ))}
                 </select>
               </div>
-            </div>
-
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 mb-4">
-              <p className="text-xs text-amber-700 font-body">
-                After saving, go to <strong>Supabase → Authentication → Users → Add User</strong> and create the account with these credentials. Then the owner can login immediately.
-              </p>
             </div>
 
             <div className="flex gap-3">

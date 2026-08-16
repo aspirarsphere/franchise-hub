@@ -43,19 +43,26 @@ export default function Team() {
     }
     setAddLoading(true)
 
-    // Save invite record with credentials
-    const { error } = await supabase.from('invites').insert({
-      email: form.email.trim(),
-      role: 'staff',
-      franchise_id: profile.franchise_id,
-      full_name: form.full_name.trim(),
-      temp_password: form.password,
-      invited_by: profile.id,
-      status: 'pending'
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        email: form.email.trim(),
+        password: form.password,
+        full_name: form.full_name.trim(),
+        role: 'staff',
+        franchise_id: profile.franchise_id,
+      })
     })
-
+    const result = await res.json()
     setAddLoading(false)
-    if (error) { alert('Error: ' + error.message); return }
+
+    if (!res.ok || result.error) { alert('Error: ' + (result.error || 'Could not create user')); return }
 
     setCreatedStaff({ name: form.full_name, email: form.email, password: form.password })
     setAdding(false)
@@ -98,7 +105,7 @@ export default function Team() {
             <p><span className="text-gray-500">Email:</span> {createdStaff.email}</p>
             <p><span className="text-gray-500">Password:</span> <span className="font-mono font-bold">{createdStaff.password}</span></p>
           </div>
-          <p className="text-xs text-amber-600 font-body mt-2">⚠ Ask them to create their Supabase account with these credentials, then their profile will be linked automatically on first login.</p>
+          <p className="text-xs text-green-600 font-body mt-2">✓ Account is ready — they can log in immediately with these credentials.</p>
           <button onClick={() => setCreatedStaff(null)} className="text-xs text-green-600 font-body mt-1 underline">Dismiss</button>
         </div>
       )}
