@@ -34,6 +34,7 @@ import Analytics from './pages/admin/Analytics'
 import AdminSettings from './pages/admin/AdminSettings'
 import Restock from './pages/admin/Restock'
 import HQTeam from './pages/admin/HQTeam'
+import HQInventory from './pages/admin/HQInventory'
 
 // Shared
 import Notifications from './pages/Notifications'
@@ -95,6 +96,7 @@ export default function App() {
         <Route path="analytics" element={<Analytics />} />
         <Route path="restock" element={<Restock />} />
         <Route path="team" element={<HQTeam />} />
+        <Route path="inventory" element={<HQInventory />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
 

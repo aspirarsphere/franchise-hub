@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom'
-import { Globe, Store, BarChart3, Settings, Package, Users } from 'lucide-react'
+import { Globe, Store, Settings, Package, Users, Layers } from 'lucide-react'
 import TopBar from '../TopBar'
 import BottomNav from '../BottomNav'
 
@@ -7,6 +7,7 @@ const TABS = [
   { to: '/admin', icon: Globe, label: 'Overview' },
   { to: '/admin/franchises', icon: Store, label: 'Franchises' },
   { to: '/admin/team', icon: Users, label: 'Team' },
+  { to: '/admin/inventory', icon: Layers, label: 'Stock' },
   { to: '/admin/restock', icon: Package, label: 'Restock' },
   { to: '/admin/settings', icon: Settings, label: 'Settings' },
 ]

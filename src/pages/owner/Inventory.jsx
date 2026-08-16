@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Spinner from '../../components/Spinner'
-import { Package, RefreshCw, Truck, Clock, CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { Package, RefreshCw, Truck, Clock, CheckCircle, XCircle, ChevronDown, ChevronUp, Edit2, X } from 'lucide-react'
 import EmptyState from '../../components/EmptyState'
 
 const STATUS_CONFIG = {
@@ -23,6 +23,10 @@ export default function Inventory() {
   const [form, setForm] = useState({ product_id: '', quantity: '', notes: '' })
   const [submitting, setSubmitting] = useState(false)
   const [expandedRequest, setExpandedRequest] = useState(null)
+  const [editItem, setEditItem] = useState(null)
+  const [editStock, setEditStock] = useState('')
+  const [editThreshold, setEditThreshold] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
     if (!profile?.franchise_id) return
@@ -62,6 +66,33 @@ export default function Inventory() {
     loadAll()
   }
 
+  function openEdit(p) {
+    setEditItem(p)
+    setEditStock(p.inventory?.current_stock ?? '')
+    setEditThreshold(p.inventory?.low_threshold ?? 5)
+  }
+
+  async function saveStock() {
+    if (editStock === '') { alert('Enter stock quantity.'); return }
+    setEditSaving(true)
+    const invEntry = editItem.inventory
+    if (invEntry) {
+      await supabase.from('inventory')
+        .update({ current_stock: parseInt(editStock), low_threshold: parseInt(editThreshold) || 5 })
+        .eq('id', invEntry.id)
+    } else {
+      await supabase.from('inventory').insert({
+        franchise_id: profile.franchise_id,
+        product_id: editItem.id,
+        current_stock: parseInt(editStock),
+        low_threshold: parseInt(editThreshold) || 5
+      })
+    }
+    setEditSaving(false)
+    setEditItem(null)
+    loadAll()
+  }
+
   function getStockStatus(item) {
     const threshold = item.low_threshold || 5
     if (item.current_stock <= 0) return { label: 'Critical', color: 'text-red-600', bg: 'bg-red-50', dot: 'bg-red-500' }
@@ -85,6 +116,47 @@ export default function Inventory() {
           <RefreshCw size={13} /> Request Stock
         </button>
       </div>
+
+      {/* Edit stock modal */}
+      {editItem && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setEditItem(null)}>
+          <div className="bg-white rounded-t-3xl w-full p-6 fade-in" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-heading text-lg font-semibold text-gray-800">Update Stock</h3>
+              <button onClick={() => setEditItem(null)}><X size={20} className="text-gray-400" /></button>
+            </div>
+            <p className="text-sm font-body text-gray-500 mb-4">{editItem.line} {editItem.variant} · {editItem.size}</p>
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 font-body uppercase tracking-wider mb-1.5">Current Stock (units) *</label>
+                <input type="number" inputMode="numeric" min="0"
+                  value={editStock}
+                  onChange={e => setEditStock(e.target.value)}
+                  placeholder="0"
+                  className="w-full h-12 px-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 font-body uppercase tracking-wider mb-1.5">Low Stock Alert Threshold</label>
+                <input type="number" inputMode="numeric" min="0"
+                  value={editThreshold}
+                  onChange={e => setEditThreshold(e.target.value)}
+                  placeholder="5"
+                  className="w-full h-12 px-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none" />
+                <p className="text-[11px] text-gray-400 font-body mt-1">Alert shows when stock falls below this number.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setEditItem(null)}
+                className="flex-1 h-12 rounded-xl border border-gray-200 text-sm font-body text-gray-600">Cancel</button>
+              <button onClick={saveStock} disabled={editSaving}
+                className="flex-1 h-12 rounded-xl text-white text-sm font-body font-semibold flex items-center justify-center"
+                style={{ backgroundColor: '#700000' }}>
+                {editSaving ? <Spinner size={18} /> : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Request form modal */}
       {showRequestForm && (
@@ -163,8 +235,17 @@ export default function Inventory() {
                   {status.label}
                 </span>
               </div>
-              <p className="text-2xl font-heading font-bold text-gray-800">{inv?.current_stock ?? '–'}</p>
-              <p className="text-[10px] text-gray-400 font-body">units in stock</p>
+              <div className="flex items-end justify-between">
+                <div>
+                  <p className="text-2xl font-heading font-bold text-gray-800">{inv?.current_stock ?? '–'}</p>
+                  <p className="text-[10px] text-gray-400 font-body">units in stock</p>
+                </div>
+                <button onClick={() => openEdit(p)}
+                  className="flex items-center gap-1 text-xs font-body font-semibold px-3 h-8 rounded-xl border"
+                  style={{ borderColor: '#700000', color: '#700000' }}>
+                  <Edit2 size={11} /> Edit
+                </button>
+              </div>
             </div>
           )
         })}
