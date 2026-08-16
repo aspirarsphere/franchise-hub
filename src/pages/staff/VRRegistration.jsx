@@ -95,22 +95,6 @@ export default function VRRegistration() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Experience type toggle */}
-          <div className="flex rounded-xl overflow-hidden border border-gray-200">
-            <button type="button"
-              onClick={() => setForm(p => ({ ...p, type: 'free' }))}
-              className={`flex-1 h-11 text-sm font-body font-semibold transition-all ${form.type === 'free' ? 'text-white' : 'text-gray-500 bg-white'}`}
-              style={form.type === 'free' ? { backgroundColor: '#700000' } : {}}>
-              Free
-            </button>
-            <button type="button"
-              onClick={() => setForm(p => ({ ...p, type: 'paid' }))}
-              className={`flex-1 h-11 text-sm font-body font-semibold transition-all ${form.type === 'paid' ? 'text-white' : 'text-gray-500 bg-white'}`}
-              style={form.type === 'paid' ? { backgroundColor: '#9c7738' } : {}}>
-              Paid
-            </button>
-          </div>
-
           <div className="relative">
             <User size={15} className="absolute left-3 top-3.5 text-gray-400" />
             <input
@@ -132,6 +116,16 @@ export default function VRRegistration() {
               className="w-full h-12 pl-9 pr-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none"
             />
           </div>
+
+          {/* Paid toggle */}
+          <button type="button"
+            onClick={() => setForm(p => ({ ...p, type: p.type === 'paid' ? 'free' : 'paid' }))}
+            className={`w-full h-11 rounded-xl text-sm font-body font-semibold flex items-center justify-between px-4 border transition-all ${form.type === 'paid' ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-gray-200 bg-white text-gray-500'}`}>
+            <span>Paid Experience</span>
+            <div className={`w-10 h-5 rounded-full transition-all relative ${form.type === 'paid' ? 'bg-amber-400' : 'bg-gray-200'}`}>
+              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${form.type === 'paid' ? 'left-5' : 'left-0.5'}`} />
+            </div>
+          </button>
 
           {error && <p className="text-red-500 text-sm font-body">{error}</p>}
 
