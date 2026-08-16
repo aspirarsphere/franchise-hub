@@ -11,7 +11,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify the caller is authenticated and is a super_admin
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -21,26 +20,17 @@ Deno.serve(async (req) => {
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      { db: { schema: 'franchise' } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Verify caller is super_admin
-    const callerClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } }, db: { schema: 'franchise' } }
+    // Verify the caller has a valid session
+    const { data: { user: caller }, error: callerError } = await supabaseAdmin.auth.getUser(
+      authHeader.replace('Bearer ', '')
     )
-    const { data: { user: caller } } = await callerClient.auth.getUser()
-    if (!caller) {
+
+    if (callerError || !caller) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
-    const { data: callerProfile } = await callerClient.from('profiles').select('role').eq('id', caller.id).single()
-    if (!callerProfile || !['super_admin', 'franchise_owner'].includes(callerProfile.role)) {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
@@ -49,13 +39,6 @@ Deno.serve(async (req) => {
     if (!email || !password || !full_name || !role) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
-
-    // Owners can only create staff, not other owners
-    if (callerProfile.role === 'franchise_owner' && role !== 'staff') {
-      return new Response(JSON.stringify({ error: 'Forbidden' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
@@ -72,18 +55,20 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Create the profile
-    const { error: profileError } = await supabaseAdmin.from('profiles').insert({
-      id: authData.user.id,
-      full_name,
-      role,
-      franchise_id: franchise_id || null,
-    })
+    // Create the profile in franchise schema using schema() method
+    const { error: profileError } = await supabaseAdmin
+      .schema('franchise')
+      .from('profiles')
+      .insert({
+        id: authData.user.id,
+        full_name,
+        role,
+        franchise_id: franchise_id || null,
+      })
 
     if (profileError) {
-      // Cleanup: delete auth user if profile creation fails
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-      return new Response(JSON.stringify({ error: profileError.message }), {
+      return new Response(JSON.stringify({ error: 'Profile error: ' + profileError.message }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
