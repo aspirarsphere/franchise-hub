@@ -17,6 +17,7 @@ export default function HQTeam() {
   const [tab, setTab] = useState('live') // live | owners | locations
   const [liveStaff, setLiveStaff] = useState([])
   const [owners, setOwners] = useState([])
+  const [allStaff, setAllStaff] = useState([])
   const [franchises, setFranchises] = useState([])
   const [locationRequests, setLocationRequests] = useState([])
   const [loading, setLoading] = useState(true)
@@ -33,7 +34,7 @@ export default function HQTeam() {
 
   async function loadAll() {
     setLoading(true)
-    const [liveRes, ownersRes, franchisesRes, locReqRes] = await Promise.all([
+    const [liveRes, ownersRes, staffRes, franchisesRes, locReqRes] = await Promise.all([
       supabase.from('profiles')
         .select('*, franchises(name), attendance!inner(clock_in_time, clock_out_time, sessions, date)')
         .eq('role', 'staff')
@@ -41,6 +42,10 @@ export default function HQTeam() {
       supabase.from('profiles')
         .select('*, franchises(name, franchise_code)')
         .eq('role', 'franchise_owner'),
+      supabase.from('profiles')
+        .select('*, franchises(name)')
+        .eq('role', 'staff')
+        .order('full_name'),
       supabase.from('franchises').select('*').eq('is_active', true).order('franchise_code'),
       supabase.from('franchise_locations')
         .select('*, franchises(name), profiles(full_name)')
@@ -49,6 +54,7 @@ export default function HQTeam() {
     ])
     setLiveStaff(liveRes.data || [])
     setOwners(ownersRes.data || [])
+    setAllStaff(staffRes.data || [])
     setFranchises(franchisesRes.data || [])
     setLocationRequests(locReqRes.data || [])
     setLoading(false)
@@ -269,6 +275,35 @@ export default function HQTeam() {
                   ))}
                 </div>
               )}
+              {/* Staff list */}
+              <div className="mt-6">
+                <p className="text-xs font-semibold text-gray-400 font-body uppercase tracking-wider mb-3">All Staff</p>
+                {allStaff.length === 0 ? (
+                  <EmptyState icon={Users} title="No staff yet" message="Staff members added by franchise owners will appear here." />
+                ) : (
+                  <div className="space-y-2">
+                    {allStaff.map(s => (
+                      <div key={s.id} className="bg-white rounded-2xl px-4 py-3 shadow-sm border border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold" style={{ backgroundColor: '#700000' }}>
+                              {s.full_name?.charAt(0) || '?'}
+                            </div>
+                            <div>
+                              <p className="text-sm font-body font-semibold text-gray-800">{s.full_name}</p>
+                              <p className="text-xs text-gray-400 font-body">{s.franchises?.name || 'No franchise'}</p>
+                            </div>
+                          </div>
+                          <button onClick={() => setConfirmDelete(s)}
+                            className="p-2 rounded-full hover:bg-red-50 transition-colors">
+                            <Trash2 size={15} className="text-red-400" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
