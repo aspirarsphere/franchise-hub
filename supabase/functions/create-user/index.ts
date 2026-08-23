@@ -34,13 +34,36 @@ Deno.serve(async (req) => {
       })
     }
 
-    const { email, password, full_name, role, franchise_id } = await req.json()
+    // Get caller's profile to enforce role-based creation rules
+    const { data: callerProfile } = await supabaseAdmin
+      .schema('franchise').from('profiles')
+      .select('role, franchise_id').eq('id', caller.id).single()
+
+    if (!callerProfile || !['super_admin', 'franchise_owner'].includes(callerProfile.role)) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    const { email, password, full_name, role, franchise_id: requested_franchise_id } = await req.json()
 
     if (!email || !password || !full_name || !role) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
+
+    // Enforce: owners can only create staff for their own franchise
+    if (callerProfile.role === 'franchise_owner' && role !== 'staff') {
+      return new Response(JSON.stringify({ error: 'Owners can only create staff accounts' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Lock franchise_id to owner's franchise — never trust what's sent by client
+    const franchise_id = callerProfile.role === 'franchise_owner'
+      ? callerProfile.franchise_id
+      : requested_franchise_id || null
 
     // Create the auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
