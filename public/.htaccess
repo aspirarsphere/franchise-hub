@@ -1,16 +1,11 @@
-# SPA routing
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /index.html [L]
-</IfModule>
+# MIME type for PWA manifest
+AddType application/manifest+json .webmanifest
 
 # No caching for PWA manifest and service worker
-<FilesMatch "(manifest\.webmanifest|sw\.js|workbox-.+\.js)$">
-  Header set Cache-Control "no-cache, no-store, must-revalidate"
-  Header set Pragma "no-cache"
-  Header set Expires "0"
-</FilesMatch>
+<IfModule mod_headers.c>
+  <FilesMatch "(manifest\.webmanifest|sw\.js|workbox-.+\.js)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
