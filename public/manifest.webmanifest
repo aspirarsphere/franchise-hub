@@ -1,0 +1,17 @@
+{
+  "name": "VeaChoc Franchise Hub",
+  "short_name": "VeaChoc Hub",
+  "description": "Franchise CRM for VeaChoc by Aspirar Sphere Pvt. Ltd.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FDFBF7",
+  "theme_color": "#700000",
+  "lang": "en",
+  "scope": "/",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "app-icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "app-icon.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "app-icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
