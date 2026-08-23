@@ -36,7 +36,6 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
           server-dir: /domains/veachoc.com/public_html/franchise/
-          dangerous-clean-slate: true
           exclude: |
             **/.git*
             **/.git*/**
