@@ -50,6 +50,30 @@ export default defineConfig({
       closeBundle() {
         writeFileSync('dist/version.json', JSON.stringify({ v: Date.now() }))
       }
+    },
+    // Force-write manifest last to ensure app-icon.png is used regardless of VitePWA cache
+    {
+      name: 'override-manifest',
+      apply: 'build',
+      closeBundle() {
+        writeFileSync('dist/manifest.webmanifest', JSON.stringify({
+          name: 'VeaChoc Franchise Hub',
+          short_name: 'VeaChoc Hub',
+          description: 'VeaChoc Franchise CRM',
+          start_url: '/',
+          display: 'standalone',
+          background_color: '#FDFBF7',
+          theme_color: '#700000',
+          lang: 'en',
+          scope: '/',
+          orientation: 'portrait',
+          icons: [
+            { src: 'app-icon.png', sizes: '192x192', type: 'image/png' },
+            { src: 'app-icon.png', sizes: '512x512', type: 'image/png' },
+            { src: 'app-icon.png', sizes: '1024x1024', type: 'image/png', purpose: 'any maskable' }
+          ]
+        }))
+      }
     }
   ]
 })
