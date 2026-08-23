@@ -1,9 +1,14 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const ALLOWED_ORIGIN = 'https://franchise.veachoc.com'
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
+
+const VALID_ROLES = ['staff', 'franchise_owner', 'super_admin']
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -49,6 +54,21 @@ Deno.serve(async (req) => {
 
     if (!email || !password || !full_name || !role) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    if (!EMAIL_RE.test(email)) {
+      return new Response(JSON.stringify({ error: 'Invalid email format' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    if (password.length < 8) {
+      return new Response(JSON.stringify({ error: 'Password must be at least 8 characters' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    if (!VALID_ROLES.includes(role)) {
+      return new Response(JSON.stringify({ error: 'Invalid role' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
