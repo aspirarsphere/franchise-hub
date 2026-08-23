@@ -77,6 +77,8 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Null out staff_id in vr_registrations to release FK constraint
+    await supabaseAdmin.schema('franchise').from('vr_registrations').update({ staff_id: null }).eq('staff_id', user_id)
     // Delete profile first, then auth user
     await supabaseAdmin.schema('franchise').from('profiles').delete().eq('id', user_id)
     const { error } = await supabaseAdmin.auth.admin.deleteUser(user_id)

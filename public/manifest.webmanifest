@@ -1,7 +1,7 @@
 {
   "name": "VeaChoc Franchise Hub",
   "short_name": "VeaChoc Hub",
-  "description": "Franchise CRM for VeaChoc by Aspirar Sphere Pvt. Ltd.",
+  "description": "VeaChoc Franchise CRM v2",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#FDFBF7",
