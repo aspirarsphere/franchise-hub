@@ -11,7 +11,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico'],
+      includeAssets: ['favicon.ico', 'app-icon.png'],
       manifest: {
         name: 'VeaChoc Franchise Hub',
         short_name: 'VeaChoc Hub',
@@ -23,8 +23,9 @@ export default defineConfig({
         scope: '/',
         start_url: '/',
         icons: [
-          { src: 'logo.svg', sizes: '192x192', type: 'image/svg+xml' },
-          { src: 'logo.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+          { src: 'app-icon.png', sizes: '192x192', type: 'image/png' },
+          { src: 'app-icon.png', sizes: '512x512', type: 'image/png' },
+          { src: 'app-icon.png', sizes: '1024x1024', type: 'image/png', purpose: 'any maskable' }
         ]
       },
       workbox: {
