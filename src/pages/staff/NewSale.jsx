@@ -99,13 +99,18 @@ export default function NewSale() {
       if (error) { alert('Save error: ' + error.message); setSubmitting(false); return }
 
       for (const { product_id, quantity } of saleItems) {
-        try {
-          await supabase.rpc('deduct_inventory', {
-            p_franchise_id: profile.franchise_id,
-            p_product_id: product_id,
-            p_qty: quantity
-          })
-        } catch (_) {}
+        const { data: inv } = await supabase
+          .from('inventory')
+          .select('id, current_stock')
+          .eq('franchise_id', profile.franchise_id)
+          .eq('product_id', product_id)
+          .maybeSingle()
+        if (inv) {
+          await supabase
+            .from('inventory')
+            .update({ current_stock: Math.max(0, (inv.current_stock || 0) - quantity) })
+            .eq('id', inv.id)
+        }
       }
 
       setLastInvoice({ ...sale, items: saleItems })
