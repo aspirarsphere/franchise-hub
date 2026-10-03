@@ -22,7 +22,9 @@ export default function HQTeam() {
   const [locationRequests, setLocationRequests] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddOwner, setShowAddOwner] = useState(false)
+  const [showAddAdmin, setShowAddAdmin] = useState(false)
   const [form, setForm] = useState({ full_name: '', email: '', password: '', state_code: 'KL', franchise_id: '' })
+  const [adminForm, setAdminForm] = useState({ full_name: '', email: '', password: '' })
   const [submitting, setSubmitting] = useState(false)
   const [created, setCreated] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
@@ -105,6 +107,37 @@ export default function HQTeam() {
     })
     setShowAddOwner(false)
     setForm({ full_name: '', email: '', password: '', state_code: 'KL', franchise_id: '' })
+    loadAll()
+  }
+
+  async function createAdmin() {
+    if (!adminForm.full_name.trim() || !adminForm.email.trim() || !adminForm.password) {
+      alert('Please fill all fields.')
+      return
+    }
+    setSubmitting(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        email: adminForm.email.trim(),
+        password: adminForm.password,
+        full_name: adminForm.full_name.trim(),
+        role: 'super_admin',
+        franchise_id: null,
+      })
+    })
+    const result = await res.json()
+    setSubmitting(false)
+    if (!res.ok || result.error) { alert('Error: ' + (result.error || 'Could not create admin')); return }
+    setCreated({ name: adminForm.full_name, email: adminForm.email, password: adminForm.password, role: 'HQ Admin' })
+    setShowAddAdmin(false)
+    setAdminForm({ full_name: '', email: '', password: '' })
     loadAll()
   }
 
@@ -220,7 +253,11 @@ export default function HQTeam() {
           {/* OWNERS */}
           {tab === 'owners' && (
             <div className="fade-in">
-              <div className="flex justify-end mb-4">
+              <div className="flex justify-end gap-2 mb-4">
+                <button onClick={() => setShowAddAdmin(true)}
+                  className="flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-body font-semibold border border-gray-300 text-gray-600">
+                  <Plus size={13} /> Add Admin
+                </button>
                 <button onClick={() => setShowAddOwner(true)}
                   className="flex items-center gap-1.5 px-3 h-9 rounded-xl text-white text-xs font-body font-semibold"
                   style={{ backgroundColor: '#700000' }}>
@@ -231,10 +268,10 @@ export default function HQTeam() {
               {/* Created credentials card */}
               {created && (
                 <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-4 fade-in">
-                  <p className="text-sm font-semibold text-green-700 font-body mb-2">✓ Owner account created — share these login details:</p>
+                  <p className="text-sm font-semibold text-green-700 font-body mb-2">✓ {created.role || 'Owner'} account created — share these login details:</p>
                   <div className="space-y-1 text-sm font-body text-gray-700">
                     <p><span className="text-gray-500">Name:</span> {created.name}</p>
-                    <p><span className="text-gray-500">Franchise:</span> {created.franchise}</p>
+                    {created.franchise && <p><span className="text-gray-500">Franchise:</span> {created.franchise}</p>}
                     <p><span className="text-gray-500">Email:</span> {created.email}</p>
                     <p><span className="text-gray-500">Password:</span> <span className="font-mono font-bold">{created.password}</span></p>
                   </div>
@@ -355,6 +392,35 @@ export default function HQTeam() {
         onConfirm={deleteUser}
         onCancel={() => setConfirmDelete(null)}
       />
+
+      {/* Add Admin Modal */}
+      {showAddAdmin && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setShowAddAdmin(false)}>
+          <div className="bg-white rounded-t-3xl w-full p-6 fade-in" onClick={e => e.stopPropagation()}>
+            <h3 className="font-heading text-lg font-semibold text-gray-800 mb-4">Add HQ Admin</h3>
+            <div className="space-y-3 mb-5">
+              <input value={adminForm.full_name} onChange={e => setAdminForm(p => ({ ...p, full_name: e.target.value }))}
+                placeholder="Full name *"
+                className="w-full h-11 px-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none" />
+              <input type="email" value={adminForm.email} onChange={e => setAdminForm(p => ({ ...p, email: e.target.value }))}
+                placeholder="Email address *"
+                className="w-full h-11 px-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none" />
+              <input value={adminForm.password} onChange={e => setAdminForm(p => ({ ...p, password: e.target.value }))}
+                placeholder="Temporary password *"
+                className="w-full h-11 px-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none font-mono" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowAddAdmin(false)}
+                className="flex-1 h-12 rounded-xl border border-gray-200 text-sm font-body text-gray-600">Cancel</button>
+              <button onClick={createAdmin} disabled={submitting}
+                className="flex-1 h-12 rounded-xl text-white text-sm font-body font-semibold flex items-center justify-center"
+                style={{ backgroundColor: '#700000' }}>
+                {submitting ? <Spinner size={18} /> : 'Create Admin'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Owner Modal */}
       {showAddOwner && (

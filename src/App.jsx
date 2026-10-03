@@ -1,43 +1,44 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { FullPageSpinner } from './components/Spinner'
 import ProtectedRoute from './components/ProtectedRoute'
 
-// Layouts
+// Layouts (loaded eagerly — needed immediately for all routes)
 import StaffLayout from './components/layouts/StaffLayout'
 import OwnerLayout from './components/layouts/OwnerLayout'
 import AdminLayout from './components/layouts/AdminLayout'
 
 // Auth
-import Login from './pages/auth/Login'
-import ResetPassword from './pages/auth/ResetPassword'
+const Login = lazy(() => import('./pages/auth/Login'))
+const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'))
 
 // Staff pages
-import StaffHome from './pages/staff/StaffHome'
-import NewSale from './pages/staff/NewSale'
-import Attendance from './pages/staff/Attendance'
-import VRRegistration from './pages/staff/VRRegistration'
+const StaffHome = lazy(() => import('./pages/staff/StaffHome'))
+const NewSale = lazy(() => import('./pages/staff/NewSale'))
+const Attendance = lazy(() => import('./pages/staff/Attendance'))
+const VRRegistration = lazy(() => import('./pages/staff/VRRegistration'))
 
 // Owner pages
-import OwnerDashboard from './pages/owner/OwnerDashboard'
-import SalesList from './pages/owner/SalesList'
-import Inventory from './pages/owner/Inventory'
-import Team from './pages/owner/Team'
-import OwnerAttendance from './pages/owner/OwnerAttendance'
-import OwnerAnalytics from './pages/owner/OwnerAnalytics'
-import OwnerSettings from './pages/owner/OwnerSettings'
+const OwnerDashboard = lazy(() => import('./pages/owner/OwnerDashboard'))
+const SalesList = lazy(() => import('./pages/owner/SalesList'))
+const Inventory = lazy(() => import('./pages/owner/Inventory'))
+const Team = lazy(() => import('./pages/owner/Team'))
+const OwnerAttendance = lazy(() => import('./pages/owner/OwnerAttendance'))
+const OwnerAnalytics = lazy(() => import('./pages/owner/OwnerAnalytics'))
+const OwnerSettings = lazy(() => import('./pages/owner/OwnerSettings'))
 
 // Admin pages
-import AdminOverview from './pages/admin/AdminOverview'
-import Franchises from './pages/admin/Franchises'
-import Analytics from './pages/admin/Analytics'
-import AdminSettings from './pages/admin/AdminSettings'
-import Restock from './pages/admin/Restock'
-import HQTeam from './pages/admin/HQTeam'
-import HQInventory from './pages/admin/HQInventory'
+const AdminOverview = lazy(() => import('./pages/admin/AdminOverview'))
+const Franchises = lazy(() => import('./pages/admin/Franchises'))
+const Analytics = lazy(() => import('./pages/admin/Analytics'))
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'))
+const Restock = lazy(() => import('./pages/admin/Restock'))
+const HQTeam = lazy(() => import('./pages/admin/HQTeam'))
+const HQInventory = lazy(() => import('./pages/admin/HQInventory'))
 
 // Shared
-import Notifications from './pages/Notifications'
+const Notifications = lazy(() => import('./pages/Notifications'))
 
 function RoleRedirect() {
   const { profile, loading } = useAuth()
@@ -53,6 +54,7 @@ export default function App() {
   if (loading) return <FullPageSpinner />
 
   return (
+    <Suspense fallback={<FullPageSpinner />}>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -109,5 +111,6 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 }

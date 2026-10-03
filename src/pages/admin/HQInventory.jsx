@@ -27,7 +27,7 @@ export default function HQInventory() {
 
   async function loadBase() {
     const [fRes, pRes] = await Promise.all([
-      supabase.from('franchises').select('id, name, code').eq('is_active', true).order('name'),
+      supabase.from('franchises').select('id, name, franchise_code').eq('is_active', true).order('name'),
       supabase.from('products').select('*').order('line')
     ])
     setFranchises(fRes.data || [])
@@ -88,7 +88,7 @@ export default function HQInventory() {
           onChange={e => setSelectedFranchise(e.target.value)}
           className="w-full h-12 px-4 pr-10 border border-gray-200 rounded-xl font-body text-sm focus:outline-none bg-white appearance-none">
           {franchises.map(f => (
-            <option key={f.id} value={f.id}>{f.name} {f.code ? `(${f.code})` : ''}</option>
+            <option key={f.id} value={f.id}>{f.name} {f.franchise_code ? `(${f.franchise_code})` : ''}</option>
           ))}
         </select>
         <ChevronDown size={16} className="absolute right-3 top-3.5 text-gray-400 pointer-events-none" />
