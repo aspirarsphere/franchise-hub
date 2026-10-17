@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase, supabasePublic } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Spinner from '../../components/Spinner'
-import { FlaskConical, AlertTriangle, X } from 'lucide-react'
+import { FlaskConical, AlertTriangle, X, RefreshCw } from 'lucide-react'
 import { RESPONSE_LABELS, IRON_TEST_SELECT, riskStyle, fmtDate, fmtTime } from '../../lib/ironTest'
 
 export default function IronTestPage() {
@@ -16,13 +16,19 @@ export default function IronTestPage() {
   useEffect(() => {
     if (franchiseName) { loadTests(); return }
     if (!profile?.franchise_id) { setLoading(false); return }
-    // Fallback: direct fetch (in case join didn't populate profile.franchises)
     supabase.from('franchises').select('name').eq('id', profile.franchise_id).single()
       .then(({ data }) => {
         if (data?.name) setFranchiseName(data.name)
         else setLoading(false)
       })
   }, [profile])
+
+  // Reload when tab becomes visible again (e.g. after taking a test on QR code)
+  useEffect(() => {
+    const onVisible = () => { if (!document.hidden && franchiseName) loadTests() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [franchiseName])
 
   async function loadTests() {
     setLoading(true)
@@ -54,9 +60,14 @@ export default function IronTestPage() {
 
   return (
     <div className="px-4 py-5 fade-in">
-      <div className="flex items-center gap-2 mb-5">
-        <FlaskConical size={22} style={{ color: '#700000' }} />
-        <h2 className="font-heading text-2xl font-semibold text-gray-800">Iron Tests</h2>
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <FlaskConical size={22} style={{ color: '#700000' }} />
+          <h2 className="font-heading text-2xl font-semibold text-gray-800">Iron Tests</h2>
+        </div>
+        <button onClick={loadTests} className="p-2 rounded-full hover:bg-gray-100 active:scale-95 transition-all">
+          <RefreshCw size={18} className="text-gray-400" />
+        </button>
       </div>
 
       {/* Period toggle */}
