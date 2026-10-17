@@ -27,6 +27,7 @@ const Team = lazy(() => import('./pages/owner/Team'))
 const OwnerAttendance = lazy(() => import('./pages/owner/OwnerAttendance'))
 const OwnerAnalytics = lazy(() => import('./pages/owner/OwnerAnalytics'))
 const OwnerSettings = lazy(() => import('./pages/owner/OwnerSettings'))
+const OwnerIronTest = lazy(() => import('./pages/staff/VRRegistration'))
 
 // Admin pages
 const AdminOverview = lazy(() => import('./pages/admin/AdminOverview'))
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="attendance" element={<OwnerAttendance />} />
         <Route path="analytics" element={<OwnerAnalytics />} />
         <Route path="settings" element={<OwnerSettings />} />
+        <Route path="iron-test" element={<OwnerIronTest />} />
       </Route>
 
       {/* Admin */}

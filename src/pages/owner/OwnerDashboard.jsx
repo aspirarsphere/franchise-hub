@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase, supabasePublic } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { formatINR, todayIST } from '../../lib/utils'
 import Spinner from '../../components/Spinner'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
-import { TrendingUp, Users, ShoppingCart, Package, AlertTriangle, FlaskConical } from 'lucide-react'
+import { TrendingUp, Users, ShoppingCart, Package, AlertTriangle, FlaskConical, ChevronRight } from 'lucide-react'
 
 export default function OwnerDashboard() {
   const { profile } = useAuth()
@@ -46,7 +47,7 @@ export default function OwnerDashboard() {
       supabasePublic.from('assessments')
         .select('risk_level')
         .eq('source', franchiseName)
-        .gte('created_at', today + 'T00:00:00+05:30')
+        .gte('created_at', weekAgo + 'T00:00:00+05:30')
     ])
 
     // Weekly chart data
@@ -90,7 +91,7 @@ export default function OwnerDashboard() {
       topSku: topSkuId,
       alerts,
       inventory: inventoryRes.data || [],
-      ironToday: ironRes.data?.length || 0,
+      ironWeek: ironRes.data?.length || 0,
       ironHigh: ironRes.data?.filter(r => r.risk_level?.toUpperCase() === 'HIGH').length || 0,
       ironMedium: ironRes.data?.filter(r => r.risk_level?.toUpperCase() === 'MEDIUM').length || 0,
     })
@@ -139,14 +140,17 @@ export default function OwnerDashboard() {
       </div>
 
       {/* Iron Test summary */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-2 mb-3">
-          <FlaskConical size={16} style={{ color: '#700000' }} />
-          <p className="text-xs font-semibold font-body text-gray-500 uppercase tracking-wider">Iron Tests Today</p>
+      <Link to="/owner/iron-test" className="block bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <FlaskConical size={16} style={{ color: '#700000' }} />
+            <p className="text-xs font-semibold font-body text-gray-500 uppercase tracking-wider">Iron Tests (7 Days)</p>
+          </div>
+          <ChevronRight size={16} className="text-gray-300" />
         </div>
         <div className="grid grid-cols-3 gap-3 text-center">
           <div>
-            <p className="font-heading text-2xl font-bold text-gray-800">{data.ironToday}</p>
+            <p className="font-heading text-2xl font-bold text-gray-800">{data.ironWeek}</p>
             <p className="text-[10px] text-gray-400 font-body">Total</p>
           </div>
           <div>
@@ -158,7 +162,7 @@ export default function OwnerDashboard() {
             <p className="text-[10px] text-gray-400 font-body">Medium</p>
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* Stock alerts */}
       {data.alerts.length > 0 && (
