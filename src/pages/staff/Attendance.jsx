@@ -200,7 +200,8 @@ export default function Attendance() {
   const isClockedIn = !!attendance?.clock_in_time
   const isClockedOut = !!attendance?.clock_out_time
   const isOnBreak = isClockedIn && !isClockedOut && !hasOpenSession
-  const breakCount = sessions.filter(s => s.in && s.out).length - (isClockedOut ? 0 : 1)
+  // breaks = sessions that have a following session (gap between them = break)
+  const breakCount = sessions.filter((s, i) => s.in && s.out && sessions[i + 1]).length
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>
 
