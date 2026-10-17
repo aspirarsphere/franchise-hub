@@ -1,161 +1,187 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
-import { todayIST } from '../../lib/utils'
 import Spinner from '../../components/Spinner'
-import { Glasses, Phone, User, CheckCircle } from 'lucide-react'
+import { FlaskConical, AlertTriangle, X } from 'lucide-react'
+import { RESPONSE_LABELS, IRON_TEST_SELECT, riskStyle, fmtDate, fmtTime } from '../../lib/ironTest'
 
-export default function VRRegistration() {
+export default function IronTestPage() {
   const { profile } = useAuth()
-  const [form, setForm] = useState({ name: '', phone: '', type: 'free' })
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
-  const [todayStats, setTodayStats] = useState({ free: 0, paid: 0 })
-  const [recent, setRecent] = useState([])
+  const [franchiseName, setFranchiseName] = useState(null)
+  const [tests, setTests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState('week')
+  const [selected, setSelected] = useState(null)
 
   useEffect(() => {
-    if (profile?.franchise_id) fetchToday()
+    if (!profile?.franchise_id) return
+    supabase.from('franchises').select('name').eq('id', profile.franchise_id).single()
+      .then(({ data }) => {
+        if (data?.name) setFranchiseName(data.name)
+      })
   }, [profile])
 
-  async function fetchToday() {
-    const today = todayIST()
-    const { data } = await supabase
-      .from('vr_registrations')
-      .select('*')
-      .eq('franchise_id', profile.franchise_id)
-      .gte('created_at', today + 'T00:00:00+05:30')
-      .order('created_at', { ascending: false })
+  useEffect(() => {
+    if (franchiseName) loadTests()
+  }, [franchiseName])
 
-    if (data) {
-      setTodayStats({
-        free: data.filter(r => r.type === 'free').length,
-        paid: data.filter(r => r.type === 'paid').length
-      })
-      setRecent(data.slice(0, 5))
-    }
-  }
-
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    if (!form.name.trim()) { setError('Please enter a name.'); return }
-    if (!/^[6-9]\d{9}$/.test(form.phone.replace(/\s/g, ''))) {
-      setError('Please enter a valid 10-digit mobile number.')
-      return
-    }
+  async function loadTests() {
     setLoading(true)
-    const { error: err } = await supabase.from('vr_registrations').insert({
-      franchise_id: profile.franchise_id,
-      staff_id: profile.id,
-      name: form.name.trim(),
-      phone: form.phone.trim(),
-      type: form.type
-    })
+    const { data } = await supabase
+      .from('assessments')
+      .select(IRON_TEST_SELECT)
+      .eq('source', franchiseName)
+      .order('created_at', { ascending: false })
+      .limit(200)
+    setTests(data || [])
     setLoading(false)
-    if (err) { setError('Error: ' + err.message); return }
-    setSuccess(true)
-    setForm({ name: '', phone: '', type: 'free' })
-    fetchToday()
-    setTimeout(() => setSuccess(false), 2500)
   }
+
+  const now = Date.now()
+  const cutoff = period === 'week' ? now - 7 * 86400000 : now - 30 * 86400000
+  const displayed = tests.filter(t => new Date(t.created_at) >= cutoff)
+  const high   = displayed.filter(t => t.risk_level?.toUpperCase() === 'HIGH').length
+  const medium = displayed.filter(t => t.risk_level?.toUpperCase() === 'MEDIUM').length
+
+  if (loading) return <div className="flex justify-center py-20"><Spinner /></div>
 
   return (
     <div className="px-4 py-5 fade-in">
       <div className="flex items-center gap-2 mb-5">
-        <Glasses size={22} style={{ color: '#700000' }} />
-        <h2 className="font-heading text-2xl font-semibold text-gray-800">VR Registration</h2>
+        <FlaskConical size={22} style={{ color: '#700000' }} />
+        <h2 className="font-heading text-2xl font-semibold text-gray-800">Iron Tests</h2>
       </div>
 
-      {/* Today stats */}
+      {/* Period toggle */}
+      <div className="flex rounded-xl overflow-hidden border border-gray-200 mb-4 text-sm font-body font-semibold">
+        {['week', 'month'].map(p => (
+          <button key={p} onClick={() => setPeriod(p)}
+            className={`flex-1 h-10 transition-colors ${period === p ? 'text-white' : 'text-gray-500 bg-white'}`}
+            style={period === p ? { backgroundColor: '#700000' } : {}}>
+            {p === 'week' ? 'Last 7 Days' : 'Last 30 Days'}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
-          <p className="font-heading text-2xl font-bold text-gray-800">{todayStats.free + todayStats.paid}</p>
-          <p className="text-[10px] text-gray-400 font-body">Total Today</p>
+          <p className="font-heading text-2xl font-bold text-gray-800">{displayed.length}</p>
+          <p className="text-[10px] text-gray-400 font-body">Total Tests</p>
         </div>
         <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
-          <p className="font-heading text-2xl font-bold text-green-600">{todayStats.free}</p>
-          <p className="text-[10px] text-gray-400 font-body">Free</p>
+          <p className="font-heading text-2xl font-bold text-red-600">{high}</p>
+          <p className="text-[10px] text-gray-400 font-body">High Risk</p>
         </div>
         <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-center">
-          <p className="font-heading text-2xl font-bold" style={{ color: '#9c7738' }}>{todayStats.paid}</p>
-          <p className="text-[10px] text-gray-400 font-body">Paid</p>
+          <p className="font-heading text-2xl font-bold text-amber-500">{medium}</p>
+          <p className="text-[10px] text-gray-400 font-body">Medium</p>
         </div>
       </div>
 
-      {/* Registration form */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 mb-5">
-        <p className="text-sm font-semibold font-body text-gray-700 mb-4">Register New Visitor</p>
-
-        {success && (
-          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3 mb-4">
-            <CheckCircle size={16} className="text-green-600" />
-            <p className="text-sm font-body text-green-700 font-semibold">Registered successfully!</p>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="relative">
-            <User size={15} className="absolute left-3 top-3.5 text-gray-400" />
-            <input
-              value={form.name}
-              onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-              placeholder="Visitor name *"
-              className="w-full h-12 pl-9 pr-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none"
-            />
-          </div>
-
-          <div className="relative">
-            <Phone size={15} className="absolute left-3 top-3.5 text-gray-400" />
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-              placeholder="Mobile number *"
-              maxLength={10}
-              className="w-full h-12 pl-9 pr-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none"
-            />
-          </div>
-
-          {/* Paid toggle */}
-          <button type="button"
-            onClick={() => setForm(p => ({ ...p, type: p.type === 'paid' ? 'free' : 'paid' }))}
-            className={`w-full h-11 rounded-xl text-sm font-body font-semibold flex items-center justify-between px-4 border transition-all ${form.type === 'paid' ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-gray-200 bg-white text-gray-500'}`}>
-            <span>Paid Experience</span>
-            <div className={`w-10 h-5 rounded-full transition-all relative ${form.type === 'paid' ? 'bg-amber-400' : 'bg-gray-200'}`}>
-              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${form.type === 'paid' ? 'left-5' : 'left-0.5'}`} />
-            </div>
-          </button>
-
-          {error && <p className="text-red-500 text-sm font-body">{error}</p>}
-
-          <button type="submit" disabled={loading}
-            className="w-full h-12 rounded-xl text-white font-body font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ backgroundColor: '#700000' }}>
-            {loading ? <Spinner size={20} /> : <><Glasses size={16} /> Register Visitor</>}
-          </button>
-        </form>
-      </div>
-
-      {/* Recent registrations */}
-      {recent.length > 0 && (
+      {/* List */}
+      {displayed.length === 0 ? (
+        <p className="text-sm text-gray-400 font-body text-center py-10">No tests in this period.</p>
+      ) : (
         <>
-          <p className="text-xs font-semibold text-gray-400 font-body uppercase tracking-wider mb-3">Recent Today</p>
+          <p className="text-xs font-semibold text-gray-400 font-body uppercase tracking-wider mb-3">Tests</p>
           <div className="space-y-2">
-            {recent.map(r => (
-              <div key={r.id} className="bg-white rounded-xl px-4 py-3 flex items-center justify-between shadow-sm border border-gray-100">
-                <div>
-                  <p className="text-sm font-body font-medium text-gray-800">{r.name}</p>
-                  <p className="text-xs text-gray-400 font-body">{r.phone}</p>
-                </div>
-                <span className={`text-[11px] font-semibold font-body px-2.5 py-1 rounded-full ${r.type === 'paid' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
-                  {r.type === 'paid' ? 'Paid' : 'Free'}
-                </span>
-              </div>
-            ))}
+            {displayed.map(t => {
+              const rs = riskStyle(t.risk_level)
+              return (
+                <button key={t.id} onClick={() => setSelected(t)}
+                  className="w-full text-left bg-white rounded-xl px-4 py-3 flex items-center justify-between gap-2 shadow-sm border border-gray-100 active:scale-[0.99] transition-all">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-body font-semibold text-gray-800 truncate">{t.name || 'Anonymous'}</p>
+                    <p className="text-[11px] text-gray-400 font-body">
+                      {t.gender} · {t.age_range}
+                      {t.is_pregnant ? ` · Pregnant${t.trimester ? ` (${t.trimester})` : ''}` : ''}
+                    </p>
+                    <p className="text-[10px] text-gray-300 font-body">{fmtDate(t.created_at)} {fmtTime(t.created_at)}</p>
+                  </div>
+                  <span className={`text-[10px] font-semibold font-body px-2.5 py-1 rounded-full flex-shrink-0 ${rs.bg} ${rs.text}`}>
+                    {rs.label}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </>
       )}
+
+      {selected && <TestDetailModal test={selected} onClose={() => setSelected(null)} />}
+    </div>
+  )
+}
+
+function TestDetailModal({ test, onClose }) {
+  const rs = riskStyle(test.risk_level)
+  const responses = test.responses || {}
+  const severe = Object.entries(responses).filter(([, v]) => v === 2).map(([k]) => RESPONSE_LABELS[k] || k)
+  const mild   = Object.entries(responses).filter(([, v]) => v === 1).map(([k]) => RESPONSE_LABELS[k] || k)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="relative w-full bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="font-heading text-lg font-semibold text-gray-800">{test.name || 'Anonymous'}</p>
+            <p className="text-sm text-gray-400 font-body">
+              {test.gender} · {test.age_range}
+              {test.is_pregnant ? ` · Pregnant${test.trimester ? ` (${test.trimester})` : ''}` : ''}
+            </p>
+            {test.mobile && <p className="text-xs text-gray-400 font-body mt-0.5">{test.mobile}</p>}
+            <p className="text-xs text-gray-300 font-body mt-0.5">{fmtDate(test.created_at)} at {fmtTime(test.created_at)}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100">
+            <X size={18} className="text-gray-500" />
+          </button>
+        </div>
+
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl mb-5 ${rs.bg}`}>
+          <AlertTriangle size={16} className={rs.text} />
+          <p className={`font-body font-bold text-sm ${rs.text}`}>{rs.label}</p>
+          {test.total_score != null && (
+            <p className={`text-xs font-body ml-auto ${rs.text} opacity-70`}>Score: {test.total_score}</p>
+          )}
+        </div>
+
+        {severe.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-red-500 font-body uppercase tracking-wider mb-2">Severe</p>
+            <div className="flex flex-wrap gap-2">
+              {severe.map(s => (
+                <span key={s} className="text-xs font-body font-semibold px-3 py-1.5 rounded-full bg-red-100 text-red-700">{s}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {mild.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-amber-500 font-body uppercase tracking-wider mb-2">Mild</p>
+            <div className="flex flex-wrap gap-2">
+              {mild.map(s => (
+                <span key={s} className="text-xs font-body px-3 py-1.5 rounded-full bg-amber-50 text-amber-700">{s}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {severe.length === 0 && mild.length === 0 && (
+          <p className="text-sm text-green-600 font-body font-semibold text-center py-4">No significant symptoms reported.</p>
+        )}
+
+        <button onClick={onClose}
+          className="w-full h-11 rounded-2xl text-white font-body font-semibold text-sm mt-2"
+          style={{ backgroundColor: '#700000' }}>
+          Close
+        </button>
+      </div>
     </div>
   )
 }

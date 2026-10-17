@@ -1,12 +1,12 @@
 import { Outlet } from 'react-router-dom'
-import { Home, ShoppingCart, Clock, Glasses } from 'lucide-react'
+import { Home, ShoppingCart, Clock, FlaskConical } from 'lucide-react'
 import TopBar from '../TopBar'
 import BottomNav from '../BottomNav'
 
 const TABS = [
   { to: '/staff', icon: Home, label: 'Home' },
   { to: '/staff/sale', icon: ShoppingCart, label: 'New Sale' },
-  { to: '/staff/vr', icon: Glasses, label: 'VR' },
+  { to: '/staff/vr', icon: FlaskConical, label: 'Iron Test' },
   { to: '/staff/attendance', icon: Clock, label: 'Attendance' },
 ]
 
