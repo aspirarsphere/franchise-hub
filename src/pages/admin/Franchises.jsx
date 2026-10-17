@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase'
 import Spinner from '../../components/Spinner'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import EmptyState from '../../components/EmptyState'
-import { Store, Plus, Power, ChevronLeft, MapPin, Users, TrendingUp, Check, Pencil, Trash2, X } from 'lucide-react'
+import { Store, Plus, Power, ChevronLeft, MapPin, Users, TrendingUp, Check, Pencil, Trash2, X, FlaskConical, AlertTriangle } from 'lucide-react'
 import { formatINR, todayIST } from '../../lib/utils'
 
 // ─── Franchise List ───────────────────────────────────────────────────────────
@@ -422,6 +422,9 @@ function FranchiseDetail({ franchise, onBack }) {
             )}
           </div>
 
+          {/* Iron Tests */}
+          <IronTests franchiseName={franchise.name} />
+
           {/* Outlet settings */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center gap-2 mb-3">
@@ -463,6 +466,235 @@ function FranchiseDetail({ franchise, onBack }) {
         onConfirm={toggleActive}
         onCancel={() => setConfirm(null)}
       />
+    </div>
+  )
+}
+
+// ─── Iron Test Labels & Helpers ───────────────────────────────────────────────
+const RESPONSE_LABELS = {
+  'breath':              'Breathlessness',
+  'fatigue':             'Fatigue',
+  'appetite':            'Appetite',
+  'headaches':           'Headaches',
+  'adult-mood':          'Mood',
+  'infections':          'Frequent infections',
+  'skin-nails':          'Skin & nails',
+  'adult-history':       'Family history',
+  'concentration':       'Concentration',
+  'cold-extremities':    'Cold hands/feet',
+  'adult-palpitations':  'Palpitations',
+  'deworming':           'Deworming',
+  'cravings':            'Unusual cravings',
+  'pregnancy-energy':    'Energy (pregnancy)',
+  'dark-circles':        'Dark circles',
+  'swelling':            'Swelling',
+  'hair-loss':           'Hair loss',
+}
+
+const RISK_STYLE = {
+  HIGH:   { bg: 'bg-red-100',    text: 'text-red-700',    label: 'High Risk' },
+  MEDIUM: { bg: 'bg-amber-100',  text: 'text-amber-700',  label: 'Medium Risk' },
+  LOW:    { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Low Risk' },
+}
+
+function riskStyle(level) {
+  return RISK_STYLE[level?.toUpperCase()] || { bg: 'bg-gray-100', text: 'text-gray-600', label: level || '–' }
+}
+
+function fmtDate(iso) {
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })
+}
+function fmtTime(iso) {
+  return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
+}
+
+// ─── Iron Tests Section ───────────────────────────────────────────────────────
+function IronTests({ franchiseName }) {
+  const [tests, setTests] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState('week') // 'week' | 'month'
+  const [selected, setSelected] = useState(null)
+
+  useEffect(() => { loadTests() }, [franchiseName])
+
+  async function loadTests() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('assessments')
+      .select('id, created_at, name, gender, age_range, is_pregnant, trimester, risk_level, risk_category, total_score, responses, mobile')
+      .eq('source', franchiseName)
+      .order('created_at', { ascending: false })
+      .limit(200)
+    setTests(data || [])
+    setLoading(false)
+  }
+
+  const now = Date.now()
+  const weekAgo  = now - 7  * 86400000
+  const monthAgo = now - 30 * 86400000
+  const weekTests  = tests.filter(t => new Date(t.created_at) >= weekAgo)
+  const monthTests = tests.filter(t => new Date(t.created_at) >= monthAgo)
+  const displayed  = period === 'week' ? weekTests : monthTests
+
+  const byRisk = (arr) => ({
+    high:   arr.filter(t => t.risk_level?.toUpperCase() === 'HIGH').length,
+    medium: arr.filter(t => t.risk_level?.toUpperCase() === 'MEDIUM').length,
+    low:    arr.filter(t => t.risk_level?.toUpperCase() === 'LOW').length,
+  })
+  const stats = byRisk(displayed)
+
+  return (
+    <>
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <FlaskConical size={15} style={{ color: '#9c7738' }} />
+            <p className="text-sm font-semibold font-body text-gray-700">Iron Tests</p>
+          </div>
+          <div className="flex rounded-lg overflow-hidden border border-gray-200 text-[11px] font-body font-semibold">
+            {['week', 'month'].map(p => (
+              <button key={p} onClick={() => setPeriod(p)}
+                className={`px-3 h-7 transition-colors ${period === p ? 'text-white' : 'text-gray-500 bg-white'}`}
+                style={period === p ? { backgroundColor: '#700000' } : {}}>
+                {p === 'week' ? '7 Days' : '30 Days'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stat chips */}
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+            <p className="font-heading text-lg font-bold text-gray-800">{displayed.length}</p>
+            <p className="text-[10px] text-gray-400 font-body">Total</p>
+          </div>
+          <div className="bg-red-50 rounded-xl p-2.5 text-center">
+            <p className="font-heading text-lg font-bold text-red-600">{stats.high}</p>
+            <p className="text-[10px] text-red-400 font-body">High Risk</p>
+          </div>
+          <div className="bg-amber-50 rounded-xl p-2.5 text-center">
+            <p className="font-heading text-lg font-bold text-amber-600">{stats.medium}</p>
+            <p className="text-[10px] text-amber-400 font-body">Medium</p>
+          </div>
+        </div>
+
+        {/* List */}
+        {loading ? (
+          <div className="flex justify-center py-6"><Spinner /></div>
+        ) : displayed.length === 0 ? (
+          <p className="text-sm text-gray-400 font-body text-center py-4">No tests in this period.</p>
+        ) : (
+          <div className="space-y-2">
+            {displayed.map(t => {
+              const rs = riskStyle(t.risk_level)
+              return (
+                <button key={t.id} onClick={() => setSelected(t)}
+                  className="w-full text-left bg-gray-50 rounded-xl px-3 py-2.5 flex items-center justify-between gap-2 active:bg-gray-100 transition-colors">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-body font-semibold text-gray-800 truncate">{t.name || 'Anonymous'}</p>
+                    <p className="text-[11px] text-gray-400 font-body">
+                      {t.gender} · {t.age_range}
+                      {t.is_pregnant ? ` · Pregnant${t.trimester ? ` (${t.trimester})` : ''}` : ''}
+                    </p>
+                    <p className="text-[10px] text-gray-300 font-body">{fmtDate(t.created_at)} {fmtTime(t.created_at)}</p>
+                  </div>
+                  <span className={`text-[10px] font-semibold font-body px-2 py-1 rounded-full flex-shrink-0 ${rs.bg} ${rs.text}`}>
+                    {rs.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Test Detail Modal */}
+      {selected && <TestDetailModal test={selected} onClose={() => setSelected(null)} />}
+    </>
+  )
+}
+
+// ─── Test Detail Modal ────────────────────────────────────────────────────────
+function TestDetailModal({ test, onClose }) {
+  const rs = riskStyle(test.risk_level)
+  const responses = test.responses || {}
+
+  const severe = Object.entries(responses).filter(([, v]) => v === 2).map(([k]) => RESPONSE_LABELS[k] || k)
+  const mild   = Object.entries(responses).filter(([, v]) => v === 1).map(([k]) => RESPONSE_LABELS[k] || k)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/40" />
+      <div className="relative w-full bg-white rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}>
+
+        {/* Handle */}
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-4" />
+
+        {/* Person info */}
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <p className="font-heading text-lg font-semibold text-gray-800">{test.name || 'Anonymous'}</p>
+            <p className="text-sm text-gray-400 font-body">
+              {test.gender} · {test.age_range}
+              {test.is_pregnant ? ` · Pregnant${test.trimester ? ` (${test.trimester})` : ''}` : ''}
+            </p>
+            {test.mobile && <p className="text-xs text-gray-400 font-body mt-0.5">{test.mobile}</p>}
+            <p className="text-xs text-gray-300 font-body mt-0.5">{fmtDate(test.created_at)} at {fmtTime(test.created_at)}</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100">
+            <X size={18} className="text-gray-500" />
+          </button>
+        </div>
+
+        {/* Risk badge */}
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-2xl mb-5 ${rs.bg}`}>
+          <AlertTriangle size={16} className={rs.text} />
+          <p className={`font-body font-bold text-sm ${rs.text}`}>{rs.label}</p>
+          {test.total_score != null && (
+            <p className={`text-xs font-body ml-auto ${rs.text} opacity-70`}>Score: {test.total_score}</p>
+          )}
+        </div>
+
+        {/* Severe symptoms */}
+        {severe.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-red-500 font-body uppercase tracking-wider mb-2">Severe</p>
+            <div className="flex flex-wrap gap-2">
+              {severe.map(s => (
+                <span key={s} className="text-xs font-body font-semibold px-3 py-1.5 rounded-full bg-red-100 text-red-700">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Mild symptoms */}
+        {mild.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-amber-500 font-body uppercase tracking-wider mb-2">Mild</p>
+            <div className="flex flex-wrap gap-2">
+              {mild.map(s => (
+                <span key={s} className="text-xs font-body px-3 py-1.5 rounded-full bg-amber-50 text-amber-700">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {severe.length === 0 && mild.length === 0 && (
+          <p className="text-sm text-green-600 font-body font-semibold text-center py-4">No significant symptoms reported.</p>
+        )}
+
+        <button onClick={onClose}
+          className="w-full h-11 rounded-2xl text-white font-body font-semibold text-sm mt-2"
+          style={{ backgroundColor: '#700000' }}>
+          Close
+        </button>
+      </div>
     </div>
   )
 }
