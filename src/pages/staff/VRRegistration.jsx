@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabasePublic } from '../../lib/supabase'
+import { supabase, supabasePublic } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Spinner from '../../components/Spinner'
 import { FlaskConical, AlertTriangle, X } from 'lucide-react'

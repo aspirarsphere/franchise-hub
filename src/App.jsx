@@ -17,7 +17,7 @@ const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'))
 const StaffHome = lazy(() => import('./pages/staff/StaffHome'))
 const NewSale = lazy(() => import('./pages/staff/NewSale'))
 const Attendance = lazy(() => import('./pages/staff/Attendance'))
-const VRRegistration = lazy(() => import('./pages/staff/VRRegistration'))
+const IronTest = lazy(() => import('./pages/staff/VRRegistration'))
 
 // Owner pages
 const OwnerDashboard = lazy(() => import('./pages/owner/OwnerDashboard'))
@@ -69,7 +69,7 @@ export default function App() {
       }>
         <Route index element={<StaffHome />} />
         <Route path="sale" element={<NewSale />} />
-        <Route path="vr" element={<VRRegistration />} />
+        <Route path="vr" element={<IronTest />} />
         <Route path="attendance" element={<Attendance />} />
       </Route>
 
