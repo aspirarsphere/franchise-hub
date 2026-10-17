@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase, supabasePublic } from '../../lib/supabase'
+import { supabasePublic } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Spinner from '../../components/Spinner'
 import { FlaskConical, AlertTriangle, X } from 'lucide-react'
@@ -73,20 +73,15 @@ function buildChart(tests, period) {
 
 export default function OwnerIronTest() {
   const { profile } = useAuth()
-  const [franchiseName, setFranchiseName] = useState(null)
+  const franchiseName = profile?.franchises?.name || null
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
   const [selected, setSelected] = useState(null)
 
   useEffect(() => {
-    if (!profile?.franchise_id) return
-    supabase.from('franchises').select('name').eq('id', profile.franchise_id).single()
-      .then(({ data }) => { if (data?.name) setFranchiseName(data.name) })
-  }, [profile])
-
-  useEffect(() => {
     if (franchiseName) loadTests()
+    else setLoading(false)
   }, [franchiseName])
 
   async function loadTests() {
@@ -117,6 +112,12 @@ export default function OwnerIronTest() {
   }, [tests, period])
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>
+  if (!franchiseName) return (
+    <div className="px-4 py-20 text-center">
+      <FlaskConical size={32} className="mx-auto mb-3 text-gray-300" />
+      <p className="text-sm text-gray-400 font-body">Unable to load Iron Test data.<br/>Contact your administrator.</p>
+    </div>
+  )
 
   return (
     <div className="px-4 py-5 fade-in">

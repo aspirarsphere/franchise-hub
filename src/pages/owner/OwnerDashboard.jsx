@@ -21,9 +21,7 @@ export default function OwnerDashboard() {
     const today = todayIST()
     const weekAgo = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10)
 
-    // Get franchise name for iron test lookup
-    const { data: franchiseData } = await supabase.from('franchises').select('name').eq('id', profile.franchise_id).single()
-    const franchiseName = franchiseData?.name || ''
+    const franchiseName = profile.franchises?.name || ''
 
     const [salesRes, staffRes, inventoryRes, weekSalesRes, ironRes] = await Promise.all([
       supabase.from('sales')

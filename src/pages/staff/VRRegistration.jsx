@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase, supabasePublic } from '../../lib/supabase'
+import { supabasePublic } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Spinner from '../../components/Spinner'
 import { FlaskConical, AlertTriangle, X } from 'lucide-react'
@@ -7,32 +7,27 @@ import { RESPONSE_LABELS, IRON_TEST_SELECT, riskStyle, fmtDate, fmtTime } from '
 
 export default function IronTestPage() {
   const { profile } = useAuth()
-  const [franchiseName, setFranchiseName] = useState(null)
+  const franchiseName = profile?.franchises?.name || null
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
   const [selected, setSelected] = useState(null)
 
   useEffect(() => {
-    if (!profile?.franchise_id) return
-    supabase.from('franchises').select('name').eq('id', profile.franchise_id).single()
-      .then(({ data }) => {
-        if (data?.name) setFranchiseName(data.name)
-      })
-  }, [profile])
-
-  useEffect(() => {
     if (franchiseName) loadTests()
+    else setLoading(false)
   }, [franchiseName])
 
   async function loadTests() {
     setLoading(true)
+    const since = new Date(Date.now() - 180 * 86400000).toISOString()
     const { data } = await supabasePublic
       .from('assessments')
       .select(IRON_TEST_SELECT)
       .eq('source', franchiseName)
+      .gte('created_at', since)
       .order('created_at', { ascending: false })
-      .limit(200)
+      .limit(500)
     setTests(data || [])
     setLoading(false)
   }
@@ -44,6 +39,12 @@ export default function IronTestPage() {
   const medium = displayed.filter(t => t.risk_level?.toUpperCase() === 'MEDIUM').length
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>
+  if (!franchiseName) return (
+    <div className="px-4 py-20 text-center">
+      <FlaskConical size={32} className="mx-auto mb-3 text-gray-300" />
+      <p className="text-sm text-gray-400 font-body">Unable to load Iron Test data.<br/>Contact your administrator.</p>
+    </div>
+  )
 
   return (
     <div className="px-4 py-5 fade-in">
