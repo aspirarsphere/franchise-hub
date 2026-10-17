@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase, supabasePublic } from '../../lib/supabase'
-import { useAuth } from '../../context/AuthContext'
+import { supabasePublic } from '../../lib/supabase'
 import Spinner from '../../components/Spinner'
 import { FlaskConical, AlertTriangle, X, RefreshCw } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
@@ -72,38 +71,24 @@ function buildChart(tests, period) {
 }
 
 export default function OwnerIronTest() {
-  const { profile } = useAuth()
-  const [franchiseName, setFranchiseName] = useState(profile?.franchises?.name || null)
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
   const [selected, setSelected] = useState(null)
 
-  useEffect(() => {
-    if (franchiseName) { loadTests(); return }
-    if (!profile?.franchise_id) { setLoading(false); return }
-    supabase.from('franchises').select('name').eq('id', profile.franchise_id).single()
-      .then(({ data }) => {
-        if (data?.name) setFranchiseName(data.name)
-        else setLoading(false)
-      })
-  }, [profile])
+  useEffect(() => { loadTests() }, [])
 
-  // Reload when tab becomes visible again (after customer takes test on QR code)
   useEffect(() => {
-    const onVisible = () => { if (!document.hidden && franchiseName) loadTests() }
+    const onVisible = () => { if (!document.hidden) loadTests() }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
-  }, [franchiseName])
+  }, [])
 
   async function loadTests() {
     setLoading(true)
-    const since = new Date(Date.now() - 180 * 86400000).toISOString()
     const { data } = await supabasePublic
       .from('assessments')
       .select(IRON_TEST_SELECT)
-      .eq('source', franchiseName)
-      .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(500)
     setTests(data || [])
