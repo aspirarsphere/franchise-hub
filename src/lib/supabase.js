@@ -13,3 +13,12 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     schema: 'franchise'
   }
 })
+
+// For tables in the public schema (e.g. assessments)
+export const supabasePublic = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+})

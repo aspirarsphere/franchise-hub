@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase, supabasePublic } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import Spinner from '../../components/Spinner'
 import { FlaskConical, AlertTriangle, X } from 'lucide-react'
@@ -27,7 +27,7 @@ export default function IronTestPage() {
 
   async function loadTests() {
     setLoading(true)
-    const { data } = await supabase
+    const { data } = await supabasePublic
       .from('assessments')
       .select(IRON_TEST_SELECT)
       .eq('source', franchiseName)

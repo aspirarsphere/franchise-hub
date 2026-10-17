@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
+import { supabase, supabasePublic } from '../../lib/supabase'
 import { useAuth } from '../../context/AuthContext'
 import { formatINR, todayIST } from '../../lib/utils'
 import Spinner from '../../components/Spinner'
@@ -43,7 +43,7 @@ export default function OwnerDashboard() {
         .eq('franchise_id', profile.franchise_id)
         .gte('created_at', weekAgo + 'T00:00:00+05:30')
         .order('created_at'),
-      supabase.from('assessments')
+      supabasePublic.from('assessments')
         .select('risk_level')
         .eq('source', franchiseName)
         .gte('created_at', today + 'T00:00:00+05:30')

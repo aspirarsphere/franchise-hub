@@ -5,6 +5,8 @@ import ConfirmDialog from '../../components/ConfirmDialog'
 import EmptyState from '../../components/EmptyState'
 import { Store, Plus, Power, ChevronLeft, MapPin, Users, TrendingUp, Check, Pencil, Trash2, X, FlaskConical, AlertTriangle } from 'lucide-react'
 import { formatINR, todayIST } from '../../lib/utils'
+import { supabasePublic } from '../../lib/supabase'
+import { RESPONSE_LABELS, riskStyle, fmtDate, fmtTime } from '../../lib/ironTest'
 
 // ─── Franchise List ───────────────────────────────────────────────────────────
 export default function Franchises() {
@@ -470,44 +472,6 @@ function FranchiseDetail({ franchise, onBack }) {
   )
 }
 
-// ─── Iron Test Labels & Helpers ───────────────────────────────────────────────
-const RESPONSE_LABELS = {
-  'breath':              'Breathlessness',
-  'fatigue':             'Fatigue',
-  'appetite':            'Appetite',
-  'headaches':           'Headaches',
-  'adult-mood':          'Mood',
-  'infections':          'Frequent infections',
-  'skin-nails':          'Skin & nails',
-  'adult-history':       'Family history',
-  'concentration':       'Concentration',
-  'cold-extremities':    'Cold hands/feet',
-  'adult-palpitations':  'Palpitations',
-  'deworming':           'Deworming',
-  'cravings':            'Unusual cravings',
-  'pregnancy-energy':    'Energy (pregnancy)',
-  'dark-circles':        'Dark circles',
-  'swelling':            'Swelling',
-  'hair-loss':           'Hair loss',
-}
-
-const RISK_STYLE = {
-  HIGH:   { bg: 'bg-red-100',    text: 'text-red-700',    label: 'High Risk' },
-  MEDIUM: { bg: 'bg-amber-100',  text: 'text-amber-700',  label: 'Medium Risk' },
-  LOW:    { bg: 'bg-green-100',  text: 'text-green-700',  label: 'Low Risk' },
-}
-
-function riskStyle(level) {
-  return RISK_STYLE[level?.toUpperCase()] || { bg: 'bg-gray-100', text: 'text-gray-600', label: level || '–' }
-}
-
-function fmtDate(iso) {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' })
-}
-function fmtTime(iso) {
-  return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
-}
-
 // ─── Iron Tests Section ───────────────────────────────────────────────────────
 function IronTests({ franchiseName }) {
   const [tests, setTests] = useState([])
@@ -519,7 +483,7 @@ function IronTests({ franchiseName }) {
 
   async function loadTests() {
     setLoading(true)
-    const { data } = await supabase
+    const { data } = await supabasePublic
       .from('assessments')
       .select('id, created_at, name, gender, age_range, is_pregnant, trimester, risk_level, risk_category, total_score, responses, mobile')
       .eq('source', franchiseName)

@@ -6,7 +6,25 @@
       "Bash(npm run *)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git commit -m ' *)",
+      "Bash(gh run *)",
+      "Bash(git commit --allow-empty -m ' *)",
+      "Bash(git commit --allow-empty -m 'Trigger redeploy: index.html cleared from server *)",
+      "Bash(curl -sI \"https://franchise.veachoc.com/index.html\" -H \"Cache-Control: no-cache, no-store\" -H \"Pragma: no-cache\")",
+      "Bash(curl -s \"https://franchise.veachoc.com/index.html\" -H \"Cache-Control: no-cache\")",
+      "Bash(git commit -m 'Add franchise detail drill-down in HQ admin *)",
+      "Bash(git commit -m 'Lower minimum attendance radius to 20m *)",
+      "Bash(curl -s https://nqucslzdeesvalhdfcdr.supabase.co/rest/v1/assessments?limit=1 -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY')",
+      "Bash(curl -s 'https://nqucslzdeesvalhdfcdr.supabase.co/rest/v1/assessments?select=source&limit=100' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY')",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); const s=new Set\\(d.map\\(r=>r.source\\)\\); console.log\\([...s]\\)\")",
+      "Bash(git commit -m 'Add Iron Test view in franchise detail \\(HQ\\) *)",
+      "Bash(git commit -m 'Replace VR with Iron Test across staff, owner, HQ *)",
+      "Bash(curl -s https://nqucslzdeesvalhdfcdr.supabase.co/rest/v1/franchises?select=id,name,franchise_code -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY')",
+      "Bash(curl -s 'https://nqucslzdeesvalhdfcdr.supabase.co/rest/v1/assessments?select=source,created_at&order=created_at.desc&limit=20' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY')",
+      "Bash(curl -s https://nqucslzdeesvalhdfcdr.supabase.co/rest/v1/franchises?select=id,name -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY' -H 'Accept-Profile: franchise')",
+      "Bash(curl -s https://nqucslzdeesvalhdfcdr.supabase.co/rest/v1/franchises?select=id,name -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xdWNzbHpkZWVzdmFsaGRmY2RyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4NjIwMzUsImV4cCI6MjA5MjQzODAzNX0.NEkskIh2ZZNqPRcjqV0tv0r9vbI_m8Poik52_pBPwCY' -H 'Accept-Profile: franchise' -G --data-urlencode select=id,name,franchise_code)",
+      "Bash(git commit -m 'Fix iron test: query public schema, not franchise schema *)"
     ]
   }
 }
