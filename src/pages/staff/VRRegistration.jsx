@@ -7,16 +7,22 @@ import { RESPONSE_LABELS, IRON_TEST_SELECT, riskStyle, fmtDate, fmtTime } from '
 
 export default function IronTestPage() {
   const { profile } = useAuth()
-  const franchiseName = profile?.franchises?.name || null
+  const [franchiseName, setFranchiseName] = useState(profile?.franchises?.name || null)
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
   const [selected, setSelected] = useState(null)
 
   useEffect(() => {
-    if (franchiseName) loadTests()
-    else setLoading(false)
-  }, [franchiseName])
+    if (franchiseName) { loadTests(); return }
+    if (!profile?.franchise_id) { setLoading(false); return }
+    // Fallback: direct fetch (in case join didn't populate profile.franchises)
+    supabase.from('franchises').select('name').eq('id', profile.franchise_id).single()
+      .then(({ data }) => {
+        if (data?.name) setFranchiseName(data.name)
+        else setLoading(false)
+      })
+  }, [profile])
 
   async function loadTests() {
     setLoading(true)
