@@ -10,7 +10,7 @@ export default function IronTestPage() {
   const [franchiseName, setFranchiseName] = useState(null)
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState('week')
+  const [period, setPeriod] = useState('month')
   const [selected, setSelected] = useState(null)
 
   useEffect(() => {

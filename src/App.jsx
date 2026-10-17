@@ -27,7 +27,7 @@ const Team = lazy(() => import('./pages/owner/Team'))
 const OwnerAttendance = lazy(() => import('./pages/owner/OwnerAttendance'))
 const OwnerAnalytics = lazy(() => import('./pages/owner/OwnerAnalytics'))
 const OwnerSettings = lazy(() => import('./pages/owner/OwnerSettings'))
-const OwnerIronTest = lazy(() => import('./pages/staff/VRRegistration'))
+const OwnerIronTest = lazy(() => import('./pages/owner/OwnerIronTest'))
 
 // Admin pages
 const AdminOverview = lazy(() => import('./pages/admin/AdminOverview'))
