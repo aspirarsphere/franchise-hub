@@ -21,17 +21,24 @@ function getDuration(start, end) {
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
 }
 
-function getTotalWorked(sessions) {
-  if (!sessions || sessions.length === 0) return '–'
-  let total = 0
-  sessions.forEach(s => {
-    if (s.in && s.out) total += new Date(s.out) - new Date(s.in)
-  })
-  // Add current open session
-  const open = sessions.find(s => s.in && !s.out)
-  if (open) total += Date.now() - new Date(open.in)
-  const mins = Math.floor(total / 60000)
+function formatMinutes(mins) {
+  if (mins == null) return '–'
   return `${Math.floor(mins / 60)}h ${mins % 60}m`
+}
+
+function calcTotalMinutes(sessions) {
+  if (!sessions || sessions.length === 0) return 0
+  let ms = 0
+  sessions.forEach(s => {
+    if (s.in && s.out) ms += new Date(s.out) - new Date(s.in)
+  })
+  const open = sessions.find(s => s.in && !s.out)
+  if (open) ms += Date.now() - new Date(open.in)
+  return Math.floor(ms / 60000)
+}
+
+function getTotalWorked(sessions) {
+  return formatMinutes(calcTotalMinutes(sessions))
 }
 
 export default function Attendance() {
@@ -87,7 +94,7 @@ export default function Attendance() {
         return (!best || dist < best.dist) ? { ...l, dist } : best
       }, null)
       if (nearest && nearest.dist > (nearest.radius_meters || 200)) {
-        setError(`You are ${Math.round(nearest.dist)}m away from the outlet. Must be within ${nearest.radius_meters || 200}m. Please go to the outlet location.`)
+        setError(`You are ${Math.round(nearest.dist)}m away from the outlet. Must be within ${nearest.radius_meters || 200}m.`)
         return null
       }
     }
@@ -100,20 +107,30 @@ export default function Attendance() {
     if (!loc) { setActionLoading(false); return }
 
     const now = new Date().toISOString()
-    const sessions = [{ in: now, out: null }]
 
-    const { error: err } = await supabase.from('attendance').insert({
-      user_id: profile.id,
-      franchise_id: profile.franchise_id,
-      date: today,
-      clock_in_time: now,
-      gps_lat_in: loc.lat,
-      gps_lng_in: loc.lng,
-      sessions,
-    })
-
-    setActionLoading(false)
-    if (err) { setError('Could not record attendance: ' + err.message); return }
+    if (attendance) {
+      // Re-clock-in after clock-out: add new session, clear clock_out_time
+      const sessions = [...(attendance.sessions || []), { in: now, out: null }]
+      const { error: err } = await supabase.from('attendance')
+        .update({ clock_out_time: null, total_work_minutes: null, sessions })
+        .eq('id', attendance.id)
+      setActionLoading(false)
+      if (err) { setError('Could not clock in: ' + err.message); return }
+    } else {
+      // First clock-in of the day
+      const sessions = [{ in: now, out: null }]
+      const { error: err } = await supabase.from('attendance').insert({
+        user_id: profile.id,
+        franchise_id: profile.franchise_id,
+        date: today,
+        clock_in_time: now,
+        gps_lat_in: loc.lat,
+        gps_lng_in: loc.lng,
+        sessions,
+      })
+      setActionLoading(false)
+      if (err) { setError('Could not record attendance: ' + err.message); return }
+    }
     fetchAll()
   }
 
@@ -163,8 +180,14 @@ export default function Attendance() {
     const openIdx = sessions.findIndex(s => s.in && !s.out)
     if (openIdx >= 0) sessions[openIdx].out = now
 
+    // Calculate total worked minutes from all completed sessions
+    const totalMs = sessions.reduce((sum, s) => {
+      return (s.in && s.out) ? sum + (new Date(s.out) - new Date(s.in)) : sum
+    }, 0)
+    const total_work_minutes = Math.floor(totalMs / 60000)
+
     const { error: err } = await supabase.from('attendance')
-      .update({ clock_out_time: now, sessions })
+      .update({ clock_out_time: now, sessions, total_work_minutes })
       .eq('id', attendance.id)
 
     setActionLoading(false)
@@ -177,7 +200,7 @@ export default function Attendance() {
   const isClockedIn = !!attendance?.clock_in_time
   const isClockedOut = !!attendance?.clock_out_time
   const isOnBreak = isClockedIn && !isClockedOut && !hasOpenSession
-  const breakCount = sessions.filter(s => s.in && s.out).length
+  const breakCount = sessions.filter(s => s.in && s.out).length - (isClockedOut ? 0 : 1)
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>
 
@@ -197,11 +220,11 @@ export default function Attendance() {
         {isClockedIn && (
           <div className="grid grid-cols-3 gap-3 mb-5 text-center">
             <div>
-              <p className="text-[11px] text-gray-400 font-body uppercase tracking-wide mb-1">Clock In</p>
+              <p className="text-[11px] text-gray-400 font-body uppercase tracking-wide mb-1">First In</p>
               <p className="font-heading font-semibold text-base text-green-600">{formatTime(attendance.clock_in_time)}</p>
             </div>
             <div>
-              <p className="text-[11px] text-gray-400 font-body uppercase tracking-wide mb-1">Clock Out</p>
+              <p className="text-[11px] text-gray-400 font-body uppercase tracking-wide mb-1">Last Out</p>
               <p className="font-heading font-semibold text-base text-gray-700">
                 {attendance.clock_out_time ? formatTime(attendance.clock_out_time) : '–'}
               </p>
@@ -209,7 +232,9 @@ export default function Attendance() {
             <div>
               <p className="text-[11px] text-gray-400 font-body uppercase tracking-wide mb-1">Worked</p>
               <p className="font-heading font-semibold text-base" style={{ color: '#700000' }}>
-                {getTotalWorked(sessions)}
+                {isClockedOut
+                  ? formatMinutes(attendance.total_work_minutes)
+                  : getTotalWorked(sessions)}
               </p>
             </div>
           </div>
@@ -244,15 +269,26 @@ export default function Attendance() {
           </div>
         )}
 
-        {/* Action buttons */}
-        {!isClockedIn && (
+        {/* Clocked-out summary */}
+        {isClockedOut && (
+          <div className="bg-green-50 border border-green-100 rounded-xl p-3 mb-3 text-center">
+            <p className="text-green-700 font-body font-semibold text-sm">✓ Clocked out</p>
+            <p className="text-xs text-gray-500 font-body mt-0.5">
+              Total worked: {formatMinutes(attendance.total_work_minutes)}
+            </p>
+          </div>
+        )}
+
+        {/* Clock-in button: first time or re-clock-in after clock-out */}
+        {(!isClockedIn || isClockedOut) && (
           <button onClick={clockIn} disabled={actionLoading}
             className="w-full h-14 rounded-2xl font-body font-bold text-white text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
             style={{ backgroundColor: '#700000' }}>
-            {actionLoading ? <Spinner size={24} /> : <><Clock size={20} /> Clock In</>}
+            {actionLoading ? <Spinner size={24} /> : <><Clock size={20} /> {isClockedOut ? 'Clock In Again' : 'Clock In'}</>}
           </button>
         )}
 
+        {/* Working: break + clock-out */}
         {isClockedIn && !isClockedOut && hasOpenSession && (
           <div className="flex gap-3">
             <button onClick={startBreak} disabled={actionLoading}
@@ -268,19 +304,13 @@ export default function Attendance() {
           </div>
         )}
 
-        {isClockedIn && !isClockedOut && isOnBreak && (
+        {/* On break: end break */}
+        {isOnBreak && (
           <button onClick={endBreak} disabled={actionLoading}
             className="w-full h-14 rounded-2xl font-body font-bold text-white text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
             style={{ backgroundColor: '#9c7738' }}>
             {actionLoading ? <Spinner size={24} /> : <><Coffee size={20} /> End Break & Resume</>}
           </button>
-        )}
-
-        {isClockedOut && (
-          <div className="text-center py-2">
-            <p className="text-green-600 font-body font-semibold text-sm">✓ Attendance complete for today</p>
-            <p className="text-xs text-gray-400 font-body mt-1">Total worked: {getTotalWorked(sessions)}</p>
-          </div>
         )}
       </div>
 
@@ -307,7 +337,9 @@ export default function Attendance() {
                 <span className={`inline-block px-2 py-1 rounded-full text-[10px] font-semibold font-body ${r.clock_in_time ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                   {r.clock_in_time ? 'Present' : 'Absent'}
                 </span>
-                <p className="text-xs text-gray-400 font-body mt-1">{getTotalWorked(r.sessions)}</p>
+                <p className="text-xs text-gray-400 font-body mt-1">
+                  {r.total_work_minutes != null ? formatMinutes(r.total_work_minutes) : getTotalWorked(r.sessions)}
+                </p>
               </div>
             </div>
           ))}
