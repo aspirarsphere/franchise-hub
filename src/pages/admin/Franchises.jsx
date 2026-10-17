@@ -182,7 +182,7 @@ function FranchiseDetail({ franchise, onBack }) {
 
   async function saveRadius(loc) {
     const val = parseInt(editingRadius[loc.id])
-    if (!val || val < 50) { alert('Minimum radius is 50m.'); return }
+    if (!val || val < 20) { alert('Minimum radius is 20m.'); return }
     setSavingRadius(p => ({ ...p, [loc.id]: true }))
     await supabase.from('franchise_locations').update({ radius_meters: val }).eq('id', loc.id)
     setSavingRadius(p => ({ ...p, [loc.id]: false }))
