@@ -14,11 +14,11 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   }
 })
 
-// For tables in the public schema (e.g. assessments)
+// For tables in the public schema (e.g. assessments) — anon reads only, no session conflict
 export const supabasePublic = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    autoRefreshToken: true,
-    persistSession: true,
+    autoRefreshToken: false,
+    persistSession: false,
     detectSessionInUrl: false
   }
 })
