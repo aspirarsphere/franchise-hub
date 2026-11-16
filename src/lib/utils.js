@@ -42,11 +42,14 @@ export function formatDate(dateStr) {
   })
 }
 
-// Generate invoice number
-export function generateInvoiceNo(franchiseCode, existingCount) {
-  const year = new Date().getFullYear()
-  const num = String(existingCount + 1).padStart(4, '0')
-  return `VC-${franchiseCode || 'HQ'}-${year}-${num}`
+// Generate invoice number — timestamp-based to avoid duplicate key conflicts
+export function generateInvoiceNo(franchiseCode) {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  const rand = String(1000 + Math.floor(Math.random() * 9000))
+  return `VC-${franchiseCode || 'HQ'}-${y}${m}${d}-${rand}`
 }
 
 // Truncate text

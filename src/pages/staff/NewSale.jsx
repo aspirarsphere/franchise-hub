@@ -71,11 +71,8 @@ export default function NewSale() {
   async function submitSale() {
     setSubmitting(true)
     try {
-      const { count } = await supabase
-        .from('sales')
-        .select('id', { count: 'exact' })
-        .eq('franchise_id', profile.franchise_id)
-      const invoiceNo = generateInvoiceNo('VC', count || 0)
+      const franchiseCode = profile.franchises?.franchise_code || profile.franchises?.name?.slice(0, 3).toUpperCase() || 'VC'
+      const invoiceNo = generateInvoiceNo(franchiseCode)
 
       const saleItems = Object.entries(cart).map(([product_id, quantity]) => {
         const p = products.find(x => x.id === product_id)
@@ -114,7 +111,6 @@ export default function NewSale() {
       }
 
       setLastInvoice({ ...sale, items: saleItems })
-      try { generatePDF({ ...sale, items: saleItems }, invoiceNo) } catch (e) { console.error('PDF error', e) }
       setDone(true)
     } catch (e) {
       alert('Unexpected error: ' + e.message)
@@ -219,6 +215,13 @@ export default function NewSale() {
       <p className="text-3xl font-heading font-bold mb-6" style={{ color: '#9c7738' }}>{formatINR(total)}</p>
 
       <div className="w-full space-y-3">
+        <button
+          onClick={() => { try { generatePDF(lastInvoice, lastInvoice.invoice_number) } catch (e) { alert('PDF error: ' + e.message) } }}
+          className="w-full h-12 rounded-xl font-body font-semibold text-sm border-2"
+          style={{ borderColor: '#700000', color: '#700000' }}
+        >
+          Download Invoice (PDF)
+        </button>
         <a
           href={`https://wa.me/${customer.phone}?text=Thank%20you%20for%20your%20purchase%20at%20VeaChoc!%20Invoice%3A%20${lastInvoice?.invoice_number}%20Amount%3A%20${formatINR(total)}`}
           target="_blank"
@@ -362,7 +365,7 @@ export default function NewSale() {
         {/* STEP 3: Payment */}
         {step === 3 && (
           <div className="fade-in">
-            <h2 className="font-heading text-xl font-semibold text-gray-800 mb-5">Payment & Invoice</h2>
+            <h2 className="font-heading text-xl font-semibold text-gray-800 mb-5">Review & Payment</h2>
 
             {/* Order summary */}
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-5">
@@ -437,7 +440,7 @@ export default function NewSale() {
             className="w-full h-12 rounded-xl font-body font-semibold text-white text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.98]"
             style={{ backgroundColor: '#700000' }}
           >
-            {submitting ? <Spinner size={20} /> : `Generate Invoice — ${formatINR(total)}`}
+            {submitting ? <Spinner size={20} /> : `Save Sale — ${formatINR(total)}`}
           </button>
         )}
       </div>
