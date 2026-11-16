@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom'
-import { LayoutDashboard, ShoppingCart, Package, BarChart3, Settings, Home, Clock, FlaskConical } from 'lucide-react'
+import { LayoutDashboard, ShoppingCart, Package, BarChart3, Settings, Home, Clock, FlaskConical, Users } from 'lucide-react'
 import TopBar from '../TopBar'
 import BottomNav from '../BottomNav'
 import { useAuth } from '../../context/AuthContext'
@@ -9,6 +9,7 @@ const OWNER_TABS = [
   { to: '/owner/sales', icon: ShoppingCart, label: 'Sales' },
   { to: '/owner/iron-test', icon: FlaskConical, label: 'Iron Test' },
   { to: '/owner/inventory', icon: Package, label: 'Stock' },
+  { to: '/owner/team', icon: Users, label: 'Team' },
   { to: '/owner/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/owner/settings', icon: Settings, label: 'Settings' },
 ]

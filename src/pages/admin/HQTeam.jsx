@@ -23,8 +23,10 @@ export default function HQTeam() {
   const [loading, setLoading] = useState(true)
   const [showAddOwner, setShowAddOwner] = useState(false)
   const [showAddAdmin, setShowAddAdmin] = useState(false)
+  const [showAddStaff, setShowAddStaff] = useState(false)
   const [form, setForm] = useState({ full_name: '', email: '', password: '', state_code: 'KL', franchise_id: '' })
   const [adminForm, setAdminForm] = useState({ full_name: '', email: '', password: '' })
+  const [staffForm, setStaffForm] = useState({ full_name: '', email: '', password: '', franchise_id: '' })
   const [submitting, setSubmitting] = useState(false)
   const [created, setCreated] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
@@ -141,6 +143,43 @@ export default function HQTeam() {
     loadAll()
   }
 
+  async function createStaff() {
+    if (!staffForm.full_name.trim() || !staffForm.email.trim() || !staffForm.password || !staffForm.franchise_id) {
+      alert('Please fill all fields and select a franchise.')
+      return
+    }
+    setSubmitting(true)
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        email: staffForm.email.trim(),
+        password: staffForm.password,
+        full_name: staffForm.full_name.trim(),
+        role: 'staff',
+        franchise_id: staffForm.franchise_id,
+      })
+    })
+    const result = await res.json()
+    setSubmitting(false)
+    if (!res.ok || result.error) { alert('Error: ' + (result.error || 'Could not create staff')); return }
+    setCreated({
+      name: staffForm.full_name,
+      email: staffForm.email,
+      password: staffForm.password,
+      franchise: franchises.find(f => f.id === staffForm.franchise_id)?.name,
+      role: 'Staff'
+    })
+    setShowAddStaff(false)
+    setStaffForm({ full_name: '', email: '', password: '', franchise_id: '' })
+    loadAll()
+  }
+
   async function deleteUser() {
     setDeleting(true)
     const { data: { session } } = await supabase.auth.getSession()
@@ -253,15 +292,20 @@ export default function HQTeam() {
           {/* OWNERS */}
           {tab === 'owners' && (
             <div className="fade-in">
-              <div className="flex justify-end gap-2 mb-4">
+              <div className="flex justify-end gap-2 mb-4 flex-wrap">
                 <button onClick={() => setShowAddAdmin(true)}
                   className="flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-body font-semibold border border-gray-300 text-gray-600">
                   <Plus size={13} /> Add Admin
                 </button>
                 <button onClick={() => setShowAddOwner(true)}
+                  className="flex items-center gap-1.5 px-3 h-9 rounded-xl text-xs font-body font-semibold border text-amber-700"
+                  style={{ borderColor: '#9c7738' }}>
+                  <Plus size={13} /> Add Owner
+                </button>
+                <button onClick={() => setShowAddStaff(true)}
                   className="flex items-center gap-1.5 px-3 h-9 rounded-xl text-white text-xs font-body font-semibold"
                   style={{ backgroundColor: '#700000' }}>
-                  <Plus size={13} /> Add Owner
+                  <Plus size={13} /> Add Staff
                 </button>
               </div>
 
@@ -416,6 +460,42 @@ export default function HQTeam() {
                 className="flex-1 h-12 rounded-xl text-white text-sm font-body font-semibold flex items-center justify-center"
                 style={{ backgroundColor: '#700000' }}>
                 {submitting ? <Spinner size={18} /> : 'Create Admin'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Staff Modal */}
+      {showAddStaff && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={() => setShowAddStaff(false)}>
+          <div className="bg-white rounded-t-3xl w-full p-6 fade-in max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h3 className="font-heading text-lg font-semibold text-gray-800 mb-4">Add Staff Member</h3>
+            <div className="space-y-3 mb-5">
+              <input value={staffForm.full_name} onChange={e => setStaffForm(p => ({ ...p, full_name: e.target.value }))}
+                placeholder="Full name *"
+                className="w-full h-11 px-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none" />
+              <input type="email" value={staffForm.email} onChange={e => setStaffForm(p => ({ ...p, email: e.target.value }))}
+                placeholder="Email address *"
+                className="w-full h-11 px-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none" />
+              <input value={staffForm.password} onChange={e => setStaffForm(p => ({ ...p, password: e.target.value }))}
+                placeholder="Temporary password *"
+                className="w-full h-11 px-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none font-mono" />
+              <select value={staffForm.franchise_id} onChange={e => setStaffForm(p => ({ ...p, franchise_id: e.target.value }))}
+                className="w-full h-11 px-4 border border-gray-200 rounded-xl font-body text-sm focus:outline-none bg-white">
+                <option value="">Select franchise *</option>
+                {franchises.map(f => (
+                  <option key={f.id} value={f.id}>{f.name} ({f.franchise_code})</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowAddStaff(false)}
+                className="flex-1 h-12 rounded-xl border border-gray-200 text-sm font-body text-gray-600">Cancel</button>
+              <button onClick={createStaff} disabled={submitting}
+                className="flex-1 h-12 rounded-xl text-white text-sm font-body font-semibold flex items-center justify-center"
+                style={{ backgroundColor: '#700000' }}>
+                {submitting ? <Spinner size={18} /> : 'Add Staff'}
               </button>
             </div>
           </div>

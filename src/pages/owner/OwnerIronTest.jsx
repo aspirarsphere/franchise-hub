@@ -109,12 +109,6 @@ export default function OwnerIronTest() {
   }, [tests, period])
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>
-  if (!franchiseName) return (
-    <div className="px-4 py-20 text-center">
-      <FlaskConical size={32} className="mx-auto mb-3 text-gray-300" />
-      <p className="text-sm text-gray-400 font-body">Unable to load Iron Test data.<br/>Contact your administrator.</p>
-    </div>
-  )
 
   return (
     <div className="px-4 py-5 fade-in">
