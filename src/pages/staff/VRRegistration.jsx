@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react'
 import { supabasePublic } from '../../lib/supabase'
+import { useAuth } from '../../context/AuthContext'
 import Spinner from '../../components/Spinner'
 import { FlaskConical, AlertTriangle, X, RefreshCw } from 'lucide-react'
 import { RESPONSE_LABELS, IRON_TEST_SELECT, riskStyle, fmtDate, fmtTime } from '../../lib/ironTest'
 
 export default function IronTestPage() {
+  const { profile } = useAuth()
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
   const [selected, setSelected] = useState(null)
+
+  const allowedSources = profile?.franchises?.iron_test_sources
 
   useEffect(() => { loadTests() }, [])
 
@@ -31,7 +35,10 @@ export default function IronTestPage() {
 
   const now = Date.now()
   const cutoff = period === 'week' ? now - 7 * 86400000 : now - 30 * 86400000
-  const displayed = tests.filter(t => new Date(t.created_at) >= cutoff)
+  const inPeriod = tests.filter(t => new Date(t.created_at) >= cutoff)
+  const displayed = allowedSources?.length
+    ? inPeriod.filter(t => allowedSources.includes(t.source))
+    : inPeriod
   const high   = displayed.filter(t => t.risk_level?.toUpperCase() === 'HIGH').length
   const medium = displayed.filter(t => t.risk_level?.toUpperCase() === 'MEDIUM').length
 

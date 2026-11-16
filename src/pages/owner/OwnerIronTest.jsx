@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { supabasePublic } from '../../lib/supabase'
+import { useAuth } from '../../context/AuthContext'
 import Spinner from '../../components/Spinner'
 import { FlaskConical, AlertTriangle, X, RefreshCw } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
@@ -71,10 +72,13 @@ function buildChart(tests, period) {
 }
 
 export default function OwnerIronTest() {
+  const { profile } = useAuth()
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
   const [selected, setSelected] = useState(null)
+
+  const allowedSources = profile?.franchises?.iron_test_sources // array or null
 
   useEffect(() => { loadTests() }, [])
 
@@ -98,7 +102,10 @@ export default function OwnerIronTest() {
   const { displayed, high, medium, low, chartData } = useMemo(() => {
     const days = PERIODS.find(p => p.key === period)?.days || 30
     const cutoff = Date.now() - days * 86400000
-    const displayed = tests.filter(t => new Date(t.created_at) >= cutoff)
+    const inPeriod = tests.filter(t => new Date(t.created_at) >= cutoff)
+    const displayed = allowedSources?.length
+      ? inPeriod.filter(t => allowedSources.includes(t.source))
+      : inPeriod
     return {
       displayed,
       high:   displayed.filter(t => t.risk_level?.toUpperCase() === 'HIGH').length,
@@ -106,7 +113,7 @@ export default function OwnerIronTest() {
       low:    displayed.filter(t => t.risk_level?.toUpperCase() === 'LOW').length,
       chartData: buildChart(displayed, period),
     }
-  }, [tests, period])
+  }, [tests, period, allowedSources])
 
   if (loading) return <div className="flex justify-center py-20"><Spinner /></div>
 

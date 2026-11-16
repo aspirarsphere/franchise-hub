@@ -425,7 +425,7 @@ function FranchiseDetail({ franchise, onBack }) {
           </div>
 
           {/* Iron Tests */}
-          <IronTests franchiseName={franchise.name} />
+          <IronTests franchise={franchise} />
 
           {/* Outlet settings */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -473,11 +473,14 @@ function FranchiseDetail({ franchise, onBack }) {
 }
 
 // ─── Iron Tests Section ───────────────────────────────────────────────────────
-function IronTests({ franchiseName }) {
+function IronTests({ franchise }) {
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
-  const [sourceFilter, setSourceFilter] = useState(franchiseName) // default to this franchise
+  // selectedSources = sources ticked by admin; null/[] means "show all"
+  const [selectedSources, setSelectedSources] = useState(franchise.iron_test_sources || [])
+  const [saving, setSaving] = useState(false)
+  const [savedOk, setSavedOk] = useState(false)
   const [selected, setSelected] = useState(null)
 
   useEffect(() => { loadTests() }, [])
@@ -486,28 +489,48 @@ function IronTests({ franchiseName }) {
     setLoading(true)
     const { data } = await supabasePublic
       .from('assessments')
-      .select('id, created_at, name, gender, age_range, is_pregnant, trimester, risk_level, risk_category, total_score, responses, mobile, source')
+      .select('id, created_at, name, gender, age_range, is_pregnant, trimester, risk_level, total_score, responses, mobile, source')
       .order('created_at', { ascending: false })
       .limit(500)
     setTests(data || [])
     setLoading(false)
   }
 
-  // All unique sources from loaded tests
+  async function saveSourceFilter() {
+    setSaving(true)
+    await supabase
+      .from('franchises')
+      .update({ iron_test_sources: selectedSources.length ? selectedSources : null })
+      .eq('id', franchise.id)
+    setSaving(false)
+    setSavedOk(true)
+    setTimeout(() => setSavedOk(false), 2000)
+  }
+
+  function toggleSource(src) {
+    setSelectedSources(prev =>
+      prev.includes(src) ? prev.filter(s => s !== src) : [...prev, src]
+    )
+    setSavedOk(false)
+  }
+
   const allSources = [...new Set(tests.map(t => t.source).filter(Boolean))].sort()
 
   const now = Date.now()
   const cutoff = period === 'week' ? now - 7 * 86400000 : now - 30 * 86400000
   const periodTests = tests.filter(t => new Date(t.created_at) >= cutoff)
-  const displayed = sourceFilter === 'all'
+  const displayed = selectedSources.length === 0
     ? periodTests
-    : periodTests.filter(t => t.source === sourceFilter)
+    : periodTests.filter(t => selectedSources.includes(t.source))
 
   const stats = {
     high:   displayed.filter(t => t.risk_level?.toUpperCase() === 'HIGH').length,
     medium: displayed.filter(t => t.risk_level?.toUpperCase() === 'MEDIUM').length,
     low:    displayed.filter(t => t.risk_level?.toUpperCase() === 'LOW').length,
   }
+
+  const dirty = JSON.stringify([...(selectedSources)].sort()) !==
+    JSON.stringify([...(franchise.iron_test_sources || [])].sort())
 
   return (
     <>
@@ -529,23 +552,33 @@ function IronTests({ franchiseName }) {
           </div>
         </div>
 
-        {/* Source filter pills */}
+        {/* Source multi-select */}
         {!loading && allSources.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            <button
-              onClick={() => setSourceFilter('all')}
-              className={`px-2.5 h-6 rounded-full text-[11px] font-body font-semibold transition-colors ${sourceFilter === 'all' ? 'text-white' : 'bg-gray-100 text-gray-500'}`}
-              style={sourceFilter === 'all' ? { backgroundColor: '#700000' } : {}}>
-              All
+          <div className="mb-4">
+            <p className="text-[10px] font-semibold text-gray-400 font-body uppercase tracking-wider mb-2">
+              Allowed Sources <span className="normal-case font-normal text-gray-300">(owner & staff see only selected)</span>
+            </p>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {allSources.map(src => {
+                const on = selectedSources.includes(src)
+                return (
+                  <button key={src} onClick={() => toggleSource(src)}
+                    className={`flex items-center gap-1 px-2.5 h-7 rounded-full text-[11px] font-body font-semibold border transition-colors ${on ? 'text-white border-transparent' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
+                    style={on ? { backgroundColor: '#700000' } : {}}>
+                    {on && <Check size={10} />}
+                    {src}
+                  </button>
+                )
+              })}
+            </div>
+            {selectedSources.length === 0 && (
+              <p className="text-[10px] text-amber-500 font-body mb-2">None selected — owner & staff see all tests.</p>
+            )}
+            <button onClick={saveSourceFilter} disabled={saving || (!dirty && !savedOk)}
+              className="flex items-center gap-1.5 px-3 h-8 rounded-xl text-xs font-body font-semibold transition-colors disabled:opacity-40"
+              style={{ backgroundColor: savedOk ? '#16a34a' : '#700000', color: 'white' }}>
+              {saving ? <Spinner size={13} /> : savedOk ? <><Check size={12} /> Saved!</> : 'Save Filter'}
             </button>
-            {allSources.map(src => (
-              <button key={src}
-                onClick={() => setSourceFilter(src)}
-                className={`px-2.5 h-6 rounded-full text-[11px] font-body font-semibold transition-colors ${sourceFilter === src ? 'text-white' : 'bg-gray-100 text-gray-500'}`}
-                style={sourceFilter === src ? { backgroundColor: '#700000' } : {}}>
-                {src}
-              </button>
-            ))}
           </div>
         )}
 
@@ -583,9 +616,7 @@ function IronTests({ franchiseName }) {
                       {t.gender} · {t.age_range}
                       {t.is_pregnant ? ` · Pregnant${t.trimester ? ` (${t.trimester})` : ''}` : ''}
                     </p>
-                    {sourceFilter === 'all' && t.source && (
-                      <p className="text-[10px] font-body font-semibold mt-0.5" style={{ color: '#9c7738' }}>{t.source}</p>
-                    )}
+                    {t.source && <p className="text-[10px] font-body font-semibold mt-0.5" style={{ color: '#9c7738' }}>{t.source}</p>}
                     <p className="text-[10px] text-gray-300 font-body">{fmtDate(t.created_at)} {fmtTime(t.created_at)}</p>
                   </div>
                   <span className={`text-[10px] font-semibold font-body px-2 py-1 rounded-full flex-shrink-0 ${rs.bg} ${rs.text}`}>
