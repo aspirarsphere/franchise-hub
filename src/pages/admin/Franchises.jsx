@@ -476,36 +476,38 @@ function FranchiseDetail({ franchise, onBack }) {
 function IronTests({ franchiseName }) {
   const [tests, setTests] = useState([])
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState('week') // 'week' | 'month'
+  const [period, setPeriod] = useState('month')
+  const [sourceFilter, setSourceFilter] = useState(franchiseName) // default to this franchise
   const [selected, setSelected] = useState(null)
 
-  useEffect(() => { loadTests() }, [franchiseName])
+  useEffect(() => { loadTests() }, [])
 
   async function loadTests() {
     setLoading(true)
     const { data } = await supabasePublic
       .from('assessments')
-      .select('id, created_at, name, gender, age_range, is_pregnant, trimester, risk_level, risk_category, total_score, responses, mobile')
-      .eq('source', franchiseName)
+      .select('id, created_at, name, gender, age_range, is_pregnant, trimester, risk_level, risk_category, total_score, responses, mobile, source')
       .order('created_at', { ascending: false })
-      .limit(200)
+      .limit(500)
     setTests(data || [])
     setLoading(false)
   }
 
-  const now = Date.now()
-  const weekAgo  = now - 7  * 86400000
-  const monthAgo = now - 30 * 86400000
-  const weekTests  = tests.filter(t => new Date(t.created_at) >= weekAgo)
-  const monthTests = tests.filter(t => new Date(t.created_at) >= monthAgo)
-  const displayed  = period === 'week' ? weekTests : monthTests
+  // All unique sources from loaded tests
+  const allSources = [...new Set(tests.map(t => t.source).filter(Boolean))].sort()
 
-  const byRisk = (arr) => ({
-    high:   arr.filter(t => t.risk_level?.toUpperCase() === 'HIGH').length,
-    medium: arr.filter(t => t.risk_level?.toUpperCase() === 'MEDIUM').length,
-    low:    arr.filter(t => t.risk_level?.toUpperCase() === 'LOW').length,
-  })
-  const stats = byRisk(displayed)
+  const now = Date.now()
+  const cutoff = period === 'week' ? now - 7 * 86400000 : now - 30 * 86400000
+  const periodTests = tests.filter(t => new Date(t.created_at) >= cutoff)
+  const displayed = sourceFilter === 'all'
+    ? periodTests
+    : periodTests.filter(t => t.source === sourceFilter)
+
+  const stats = {
+    high:   displayed.filter(t => t.risk_level?.toUpperCase() === 'HIGH').length,
+    medium: displayed.filter(t => t.risk_level?.toUpperCase() === 'MEDIUM').length,
+    low:    displayed.filter(t => t.risk_level?.toUpperCase() === 'LOW').length,
+  }
 
   return (
     <>
@@ -526,6 +528,26 @@ function IronTests({ franchiseName }) {
             ))}
           </div>
         </div>
+
+        {/* Source filter pills */}
+        {!loading && allSources.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            <button
+              onClick={() => setSourceFilter('all')}
+              className={`px-2.5 h-6 rounded-full text-[11px] font-body font-semibold transition-colors ${sourceFilter === 'all' ? 'text-white' : 'bg-gray-100 text-gray-500'}`}
+              style={sourceFilter === 'all' ? { backgroundColor: '#700000' } : {}}>
+              All
+            </button>
+            {allSources.map(src => (
+              <button key={src}
+                onClick={() => setSourceFilter(src)}
+                className={`px-2.5 h-6 rounded-full text-[11px] font-body font-semibold transition-colors ${sourceFilter === src ? 'text-white' : 'bg-gray-100 text-gray-500'}`}
+                style={sourceFilter === src ? { backgroundColor: '#700000' } : {}}>
+                {src}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Stat chips */}
         <div className="grid grid-cols-3 gap-2 mb-4">
@@ -561,6 +583,9 @@ function IronTests({ franchiseName }) {
                       {t.gender} · {t.age_range}
                       {t.is_pregnant ? ` · Pregnant${t.trimester ? ` (${t.trimester})` : ''}` : ''}
                     </p>
+                    {sourceFilter === 'all' && t.source && (
+                      <p className="text-[10px] font-body font-semibold mt-0.5" style={{ color: '#9c7738' }}>{t.source}</p>
+                    )}
                     <p className="text-[10px] text-gray-300 font-body">{fmtDate(t.created_at)} {fmtTime(t.created_at)}</p>
                   </div>
                   <span className={`text-[10px] font-semibold font-body px-2 py-1 rounded-full flex-shrink-0 ${rs.bg} ${rs.text}`}>
